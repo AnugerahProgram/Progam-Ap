@@ -46,11 +46,18 @@ export default function MasterView() {
               </span>
             </div>
             {nominal != null && (
-              <div className="text-[13px] text-ink-700/70 mb-3">Syarat omset: <b className="text-ink-900">{formatRupiah(nominal)}</b></div>
+              <div className="text-[13px] text-ink-700/70 mb-3">
+                Syarat omset: <b className="text-ink-900">{formatRupiah(nominal)}</b>
+                {p.program === 'SUPERFAN' && <span className="text-ink-700/50"> per 1 paket (dikali jumlah paket yang diajukan toko)</span>}
+              </div>
             )}
             {wajibItems.length > 0 && (
               <div className="mb-3">
-                <div className="text-[12px] text-ink-700/60 mb-1">Item wajib (pilih min. 2)</div>
+                <div className="text-[12px] text-ink-700/60 mb-1">
+                  {p.program === 'SUPERFAN'
+                    ? 'Item wajib (min. 2 pcs per 1 paket, dikali jumlah paket)'
+                    : 'Item wajib (pilih min. 2)'}
+                </div>
                 <div className="flex flex-wrap gap-1.5">
                   {wajibItems.map((i) => (
                     <span key={i.namaBarang} className="px-2 py-0.5 rounded-md bg-brass-400/15 text-brass-600 text-[12px] font-medium">

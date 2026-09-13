@@ -1,8 +1,20 @@
 import React, { useRef, useState } from 'react'
-import { X, CheckCircle2, Circle, MapPin, Store, Truck, FileSpreadsheet, ImageDown, Loader2 } from 'lucide-react'
+import { X, CheckCircle2, Circle, MapPin, Store, Truck, FileSpreadsheet, ImageDown, Loader2, CircleDashed, Package } from 'lucide-react'
 import StatusBadge from './StatusBadge'
 import { formatRupiah, formatDate, formatDateRange } from '../lib/format'
 import { downloadExcel, downloadElementAsImage } from '../lib/exportUtils'
+
+function FormFisikMini({ formFisik }) {
+  return formFisik ? (
+    <span className="inline-flex items-center gap-1 text-pine-600 font-bold">
+      <CheckCircle2 size={14} /> Sudah sampai
+    </span>
+  ) : (
+    <span className="inline-flex items-center gap-1 text-clay-600 font-bold">
+      <CircleDashed size={14} /> Belum sampai
+    </span>
+  )
+}
 
 const TX_COLUMNS = [
   { label: 'No Faktur', key: 'noFaktur', width: 18 },
@@ -21,11 +33,8 @@ export default function DetailModal({ row, onClose }) {
   if (!row) return null
 
   const filename = `transaksi-${row.kodeToko}-${row.program}`.replace(/\s+/g, '_')
-<<<<<<< HEAD
-=======
   const grandTotalQty = row.transactions.reduce((s, t) => s + (Number(t.qty) || 0), 0)
   const grandTotalNominal = row.transactions.reduce((s, t) => s + (Number(t.nominal) || 0), 0)
->>>>>>> 7f768dffc93f48f2fb6ac4eafab05fc3e520ce2e
 
   const handleDownloadExcel = async () => {
     setExporting('excel')
@@ -86,7 +95,7 @@ export default function DetailModal({ row, onClose }) {
           </button>
         </div>
 
-        <div className="px-6 py-4 grid grid-cols-2 md:grid-cols-4 gap-3 border-b border-sand-200">
+        <div className="px-6 py-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3 border-b border-sand-200">
           <div>
             <div className="text-[12px] text-ink-700/60">Omset program</div>
             <div className="font-bold text-ink-900">{formatRupiah(row.omset)}</div>
@@ -98,6 +107,14 @@ export default function DetailModal({ row, onClose }) {
           <div>
             <div className="text-[12px] text-ink-700/60">Varian dibeli</div>
             <div className="font-bold text-ink-900">{row.varianCount} dari {row.totalVarianProgram}</div>
+          </div>
+          <div>
+            <div className="text-[12px] text-ink-700/60 flex items-center gap-1"><Package size={12} /> Pengajuan Paket</div>
+            <div className="font-bold text-ink-900">{row.pengajuanPaket ?? 1}</div>
+          </div>
+          <div>
+            <div className="text-[12px] text-ink-700/60">Form Fisik</div>
+            <FormFisikMini formFisik={row.formFisik} />
           </div>
           <div>
             <div className="text-[12px] text-ink-700/60">Status</div>
@@ -119,7 +136,14 @@ export default function DetailModal({ row, onClose }) {
         </div>
 
         <div className="px-6 py-4 border-b border-sand-200">
-          <div className="font-semibold text-ink-900 mb-2 text-[14px]">Cek varian item</div>
+          <div className="flex items-center justify-between mb-2">
+            <div className="font-semibold text-ink-900 text-[14px]">Cek varian item</div>
+            {row.itemWajibTotal.length > 0 && (
+              <div className="text-[12.5px] text-ink-700/60">
+                Item wajib: <b className={row.wajibHave >= row.wajibNeeded ? 'text-pine-600' : 'text-clay-600'}>{row.wajibHave}/{row.wajibNeeded} pcs</b>
+              </div>
+            )}
+          </div>
           <table className="w-full" style={{ borderCollapse: 'separate', borderSpacing: '3px' }}>
             <tbody>
               {Array.from({ length: Math.ceil(row.items.length / 2) }).map((_, rowIdx) => {
@@ -174,11 +198,7 @@ export default function DetailModal({ row, onClose }) {
             </div>
           </div>
           <div className="bg-sand-50 rounded-lg">
-<<<<<<< HEAD
-            <div ref={txScrollRef} className="max-h-64 overflow-y-auto rounded-lg border border-sand-200">
-=======
             <div ref={txScrollRef} className="max-h-64 overflow-y-auto rounded-t-lg border border-sand-200">
->>>>>>> 7f768dffc93f48f2fb6ac4eafab05fc3e520ce2e
               <table className="w-full text-[12.5px]">
                 <thead className="bg-sand-100 text-ink-700/70 sticky top-0">
                   <tr>
@@ -202,8 +222,6 @@ export default function DetailModal({ row, onClose }) {
                 </tbody>
               </table>
             </div>
-<<<<<<< HEAD
-=======
             <div className="flex items-center justify-between px-3 py-2.5 rounded-b-lg border border-t-0 border-sand-200 bg-sand-100">
               <span className="text-[12.5px] font-semibold text-ink-900 uppercase tracking-wide">Grand Total</span>
               <div className="flex items-center gap-5">
@@ -215,7 +233,6 @@ export default function DetailModal({ row, onClose }) {
                 </span>
               </div>
             </div>
->>>>>>> 7f768dffc93f48f2fb6ac4eafab05fc3e520ce2e
           </div>
         </div>
       </div>

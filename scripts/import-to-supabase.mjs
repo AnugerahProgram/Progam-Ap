@@ -160,13 +160,10 @@ function readMasterBarang(filePath) {
 function readRekapanProgram(filePath) {
   const wb = XLSX.readFile(filePath, { cellDates: true })
   const out = []
-<<<<<<< HEAD
-=======
   const seenKeys = new Map() // `${supp}||${kodeToko}||${program}||${awalProgram}` -> index di out
   const merged = [] // baris kombinasi sama tapi datanya beda -> DIGABUNG (bukan dibuang)
   const exactDupes = [] // duplikat identik (aman, cuma dilaporkan biar jumlah baris jelas)
   const skippedEmpty = [] // baris yg KODE TOKO / PROGRAM-nya kosong
->>>>>>> 7f768dffc93f48f2fb6ac4eafab05fc3e520ce2e
 
   for (const sheetName of wb.SheetNames) {
     const rows = sheetToRows(wb.Sheets[sheetName])
@@ -179,11 +176,6 @@ function readRekapanProgram(filePath) {
       if (!row || row.every((c) => c == null)) continue
       const kodeToko = get(row, idx, 'KODE TOKO', ['KD TOKO'])
       const program = get(row, idx, 'PROGRAM')
-<<<<<<< HEAD
-      if (!kodeToko || !program) continue
-
-      out.push({
-=======
       if (!kodeToko || !program) {
         // baris r di sini 0-based dari sheetToRows (header=row 0), jadi baris
         // asli di Excel = r + 1 (karena header ada di baris 1 Excel)
@@ -192,7 +184,6 @@ function readRekapanProgram(filePath) {
       }
 
       const entry = {
->>>>>>> 7f768dffc93f48f2fb6ac4eafab05fc3e520ce2e
         supp,
         kode_toko: String(kodeToko).trim(),
         nama_pelanggan: get(row, idx, 'NAMA PELANGGAN', ['NAMA TOKO']),
@@ -212,12 +203,6 @@ function readRekapanProgram(filePath) {
         })(),
         awal_program: toISODate(get(row, idx, 'AWAL PROGRAM')),
         akhir_program: toISODate(get(row, idx, 'AKHIR PROGRAM')),
-<<<<<<< HEAD
-      })
-    }
-  }
-  return out
-=======
       }
 
       // Tabel rekapan_program punya unique constraint di kombinasi
@@ -271,7 +256,6 @@ function readRekapanProgram(filePath) {
     }
   }
   return { rows: out, merged, exactDupes, skippedEmpty }
->>>>>>> 7f768dffc93f48f2fb6ac4eafab05fc3e520ce2e
 }
 
 // ---------------------------------------------------------------------------
@@ -332,19 +316,13 @@ async function main() {
   console.log(`Membaca file dari: ${SRC_DIR}`)
 
   const masterBarang = readMasterBarang(FILES.masterBarang)
-<<<<<<< HEAD
-  const rekapanProgram = readRekapanProgram(FILES.rekapan)
-=======
   const { rows: rekapanProgram, merged: rekapanMerged, exactDupes: rekapanExactDupes, skippedEmpty: rekapanSkippedEmpty } = readRekapanProgram(FILES.rekapan)
->>>>>>> 7f768dffc93f48f2fb6ac4eafab05fc3e520ce2e
   const dataPenjualan = readDataPenjualan(FILES.penjualan)
 
   console.log(`  MASTER_BARANG.xlsx          -> ${masterBarang.length} baris`)
   console.log(`  INPUT_REKAPAN_PROGRAM.xlsx  -> ${rekapanProgram.length} baris`)
   console.log(`  DATA_PENJUALAN.xlsx         -> ${dataPenjualan.length} baris`)
 
-<<<<<<< HEAD
-=======
   if (rekapanSkippedEmpty.length > 0) {
     console.log(`\nPERINGATAN: ${rekapanSkippedEmpty.length} baris di INPUT_REKAPAN_PROGRAM.xlsx dilewati (KODE TOKO atau PROGRAM kosong):`)
     for (const s of rekapanSkippedEmpty.slice(0, 20)) {
@@ -371,7 +349,6 @@ async function main() {
     console.log(`   Kalau ada kasus yang SEHARUSNYA tidak digabung (misal beda periode program tapi kebetulan kena kunci sama), cek daftar di atas manual.`)
   }
 
->>>>>>> 7f768dffc93f48f2fb6ac4eafab05fc3e520ce2e
   console.log('\nMengosongkan tabel lama (full refresh)...')
   for (const table of ['data_penjualan', 'rekapan_program', 'master_barang']) {
     const { error } = await supabase.from(table).delete().neq('id', -1)
@@ -386,8 +363,6 @@ async function main() {
   await upsertBatched('rekapan_program', rekapanProgram)
   await upsertBatched('data_penjualan', dataPenjualan)
 
-<<<<<<< HEAD
-=======
   console.log('\nUpdate waktu sync (sync_meta)...')
   const { error: metaErr } = await supabase.from('sync_meta').upsert({ id: 1, last_synced_at: new Date().toISOString() })
   if (metaErr) {
@@ -396,7 +371,6 @@ async function main() {
     console.warn('Peringatan: gagal update sync_meta:', metaErr.message)
   }
 
->>>>>>> 7f768dffc93f48f2fb6ac4eafab05fc3e520ce2e
   console.log('\nSelesai. Data sudah dipindahkan ke Supabase.')
 }
 

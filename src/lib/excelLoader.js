@@ -130,9 +130,6 @@ function parseMasterWorkbook(wb) {
     }
   }
 
-<<<<<<< HEAD
-  return { masterBarang, nominalWajib, periodeProgram }
-=======
   // Sheet "JUMLAH PAKET" kamu tidak punya kolom SUPP -- ditebak dari
   // PROGRAM-nya lewat data MASTER BARANG (lihat catatan yang sama di
   // scripts/sync-excel-to-supabase.js, sumber kebenaran utama untuk sync).
@@ -183,7 +180,6 @@ function parseMasterWorkbook(wb) {
   }
 
   return { masterBarang, nominalWajib, periodeProgram, jumlahPaket }
->>>>>>> 7f768dffc93f48f2fb6ac4eafab05fc3e520ce2e
 }
 
 export async function loadAllData() {
@@ -192,11 +188,6 @@ export async function loadAllData() {
     fetchWorkbook(MASTER_URL),
   ])
   const sales = parseSalesWorkbook(salesWb)
-<<<<<<< HEAD
-  const { masterBarang, nominalWajib, periodeProgram } = parseMasterWorkbook(masterWb)
-  return { sales, masterBarang, nominalWajib, periodeProgram }
-=======
   const { masterBarang, nominalWajib, periodeProgram, jumlahPaket } = parseMasterWorkbook(masterWb)
   return { sales, masterBarang, nominalWajib, periodeProgram, jumlahPaket }
->>>>>>> 7f768dffc93f48f2fb6ac4eafab05fc3e520ce2e
 }

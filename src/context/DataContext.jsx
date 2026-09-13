@@ -1,8 +1,4 @@
 import React, { createContext, useContext, useMemo, useState, useEffect, useCallback } from 'react'
-<<<<<<< HEAD
-import { loadAllData } from '../lib/supabaseLoader'
-import { computeRecap, computeKekuranganPaket } from '../lib/compute'
-=======
 import { loadAllData as loadFromSupabase } from '../lib/supabaseLoader'
 import { loadAllData as loadFromLocal } from '../lib/localLoader'
 import { computeRecap, computeKekuranganPaket } from '../lib/compute'
@@ -27,7 +23,6 @@ const CACHE_ENABLED = DATA_SOURCE === 'supabase'
 // tetap ada auto-refresh berkala.
 const CACHE_TTL_MINUTES = Number(import.meta.env.VITE_CACHE_TTL_MINUTES) || 0
 const CACHE_TTL_MS = CACHE_TTL_MINUTES > 0 ? CACHE_TTL_MINUTES * 60 * 1000 : Infinity
->>>>>>> 7f768dffc93f48f2fb6ac4eafab05fc3e520ce2e
 
 const DataContext = createContext(null)
 
@@ -37,8 +32,6 @@ export function DataProvider({ children }) {
   const [raw, setRaw] = useState(EMPTY)
   const [status, setStatus] = useState('loading') // loading | ready | error
   const [errorMsg, setErrorMsg] = useState(null)
-<<<<<<< HEAD
-=======
   // cacheStatus: 'HIT' (pakai data cache, tidak ada request ke Supabase),
   // 'MISS' (baru saja fetch fresh dari Supabase), atau null (mode lokal,
   // caching tidak dipakai).
@@ -48,25 +41,11 @@ export function DataProvider({ children }) {
   // (server-side, dari tabel sync_meta) -- beda dari cachedAt yang cuma
   // "kapan browser ini terakhir fetch". null di mode lokal (tidak relevan).
   const [lastSyncedAt, setLastSyncedAt] = useState(null)
->>>>>>> 7f768dffc93f48f2fb6ac4eafab05fc3e520ce2e
   // default false: setiap baris di INPUT_REKAPAN_PROGRAM sudah membawa
   // AWAL PROGRAM / AKHIR PROGRAM sendiri, jadi periode itu dipakai secara
   // default supaya rekap selalu sesuai dengan yang tertulis di Excel.
   const [ignorePeriod, setIgnorePeriod] = useState(false)
 
-<<<<<<< HEAD
-  const load = useCallback(() => {
-    setStatus('loading')
-    setErrorMsg(null)
-    loadAllData()
-      .then((data) => {
-        setRaw(data)
-        setStatus('ready')
-      })
-      .catch((err) => {
-        console.error(err)
-        setErrorMsg(err.message || 'Gagal memuat data dari Supabase')
-=======
   // force=true -> lewati cache, selalu fetch fresh dari Supabase (dipakai
   // tombol "Refresh Data" di Topbar, misalnya tepat setelah menjalankan
   // npm run import:supabase supaya tidak perlu nunggu TTL habis).
@@ -105,7 +84,6 @@ export function DataProvider({ children }) {
       .catch((err) => {
         console.error(err)
         setErrorMsg(err.message || 'Gagal memuat data')
->>>>>>> 7f768dffc93f48f2fb6ac4eafab05fc3e520ce2e
         setStatus('error')
       })
   }, [])
@@ -113,13 +91,9 @@ export function DataProvider({ children }) {
   useEffect(() => { load() }, [load])
 
   const meta = {
-<<<<<<< HEAD
-    source: 'supabase',
-=======
     source: DATA_SOURCE,
     cacheEnabled: CACHE_ENABLED,
     cacheTtlMinutes: CACHE_ENABLED ? CACHE_TTL_MINUTES : null, // 0 = tidak pernah kedaluwarsa otomatis
->>>>>>> 7f768dffc93f48f2fb6ac4eafab05fc3e520ce2e
     tables: {
       sales: 'data_penjualan',
       masterBarang: 'master_barang',
@@ -128,11 +102,7 @@ export function DataProvider({ children }) {
   }
 
   const recap = useMemo(
-<<<<<<< HEAD
-    () => computeRecap(raw.sales, raw.masterBarang, raw.nominalWajib, raw.periodeProgram, { ignorePeriod }),
-=======
     () => computeRecap(raw.sales, raw.masterBarang, raw.rekapanProgram, { ignorePeriod }),
->>>>>>> 7f768dffc93f48f2fb6ac4eafab05fc3e520ce2e
     [raw, ignorePeriod]
   )
 
@@ -145,13 +115,9 @@ export function DataProvider({ children }) {
   )
 
   const value = {
-<<<<<<< HEAD
-    ...raw, meta, status, errorMsg, reload: load,
-=======
     ...raw, meta, status, errorMsg,
     reload: () => load({ force: true }),
     cacheStatus, cachedAt, lastSyncedAt,
->>>>>>> 7f768dffc93f48f2fb6ac4eafab05fc3e520ce2e
     ignorePeriod, setIgnorePeriod,
     recap,
     kekuranganPaket,

@@ -1,8 +1,3 @@
-<<<<<<< HEAD
-// Core logic to turn raw sales rows + master program rules into a
-// per-customer x per-program recap: what they bought, whether they
-// qualify, and what's still missing.
-=======
 // Core logic to turn raw sales rows + master program rules + program
 // confirmations (INPUT_REKAPAN_PROGRAM.xlsx) into a per-customer x
 // per-program recap: what they bought, whether they qualify, and what's
@@ -36,7 +31,6 @@ function belanjaCeriaReward(nominalRequired) {
   }
   return BELANJA_CERIA_TIERS[0].reward
 }
->>>>>>> 7f768dffc93f48f2fb6ac4eafab05fc3e520ce2e
 
 const REWARD_LABEL = {
   'BUCKET SEAL': 'Diskon 10%',
@@ -46,10 +40,6 @@ const REWARD_LABEL = {
   'SUPERFAN': 'Sesuai ketentuan program',
 }
 
-<<<<<<< HEAD
-// How each program decides "tercapai" (qualified). Every rule receives
-// a normalized `ctx` object (see buildContext) and returns
-=======
 function getRewardLabel(program, nominalRequired) {
   if (program === 'BELANJA CERIA') {
     const r = belanjaCeriaReward(nominalRequired)
@@ -60,25 +50,40 @@ function getRewardLabel(program, nominalRequired) {
 
 // How each program decides "tercapai" (qualified). Every rule receives
 // a normalized `ctx` object (see computeRecap) and returns
->>>>>>> 7f768dffc93f48f2fb6ac4eafab05fc3e520ce2e
 // { tercapai, kekurangan: string[] }
 const RULES = {
+  // SUPERFAN: syarat & ketentuan berskala mengikuti jumlah PAKET yang
+  // diajukan toko (kolom PENGAJUAN PAKET di INPUT_REKAPAN_PROGRAM.xlsx).
+  // Basis per 1 paket = 2 pcs item wajib (boleh campur antar varian wajib,
+  // dihitung dari total QTY yang dibeli, bukan jumlah varian berbeda) dan
+  // omset >= nominal yang tertulis di kolom TARGET NOMINAL (basis per 1
+  // paket, di-kali jumlah paket). Contoh: toko ajukan 2 paket -> butuh 4
+  // pcs item wajib & omset 2x TARGET NOMINAL (mis. 2jt -> 4jt).
   SUPERFAN: (ctx) => {
     const kekurangan = []
-    const wajibNeeded = 2
-    const wajibHave = ctx.wajibBoughtNames.length
+    const paket = ctx.pengajuanPaket && ctx.pengajuanPaket > 0 ? ctx.pengajuanPaket : 1
+    const wajibPerPaket = 2
+    const wajibNeeded = wajibPerPaket * paket
+    const wajibHave = ctx.wajibQtyBought
+    const nominalRequired = ctx.nominalRequired != null ? ctx.nominalRequired * paket : null
+
     if (wajibHave < wajibNeeded) {
-      const sisaWajib = ctx.wajibItemNames.filter((n) => !ctx.wajibBoughtNames.includes(n))
       kekurangan.push(
-        `Item wajib baru ${wajibHave}/${wajibNeeded} varian. Perlu tambah salah satu: ${sisaWajib.join(', ') || '-'}`
+        `Item wajib baru ${wajibHave}/${wajibNeeded} pcs (syarat ${wajibPerPaket} pcs × ${paket} paket yang diajukan). Item wajib: ${ctx.wajibItemNames.join(', ') || '-'}`
       )
     }
-    if (ctx.nominalRequired != null && ctx.omset <= ctx.nominalRequired) {
+    if (nominalRequired != null && ctx.omset <= nominalRequired) {
       kekurangan.push(
-        `Omset kurang ${moneyDiff(ctx.nominalRequired - ctx.omset)} (syarat > ${moneyFmt(ctx.nominalRequired)})`
+        `Omset kurang ${moneyDiff(nominalRequired - ctx.omset)} (syarat > ${moneyFmt(nominalRequired)}, mengikuti ${paket} paket)`
       )
     }
-    return { tercapai: wajibHave >= wajibNeeded && (ctx.nominalRequired == null || ctx.omset > ctx.nominalRequired), kekurangan }
+    return {
+      tercapai: wajibHave >= wajibNeeded && (nominalRequired == null || ctx.omset > nominalRequired),
+      kekurangan,
+      wajibNeeded,
+      wajibHave,
+      nominalRequiredEffective: nominalRequired,
+    }
   },
 
   'BUCKET SEAL': (ctx) => {
@@ -118,12 +123,9 @@ const RULES = {
     return { tercapai: have >= need, kekurangan }
   },
 
-<<<<<<< HEAD
-=======
   // DISPLAY HOKI: reward Rp 200.000 kalau omset barang program >= Rp 1.665.000
   // (akumulasi periode program, dari toko yang sudah konfirmasi ikut program
   // ini di form INPUT_REKAPAN_PROGRAM).
->>>>>>> 7f768dffc93f48f2fb6ac4eafab05fc3e520ce2e
   'DISPLAY HOKI': (ctx) => {
     const kekurangan = []
     if (ctx.nominalRequired != null && ctx.omset < ctx.nominalRequired) {
@@ -133,8 +135,6 @@ const RULES = {
     }
     return { tercapai: ctx.nominalRequired == null ? ctx.omset > 0 : ctx.omset >= ctx.nominalRequired, kekurangan }
   },
-<<<<<<< HEAD
-=======
 
   // BELANJA CERIA: toko mengajukan salah satu paket (11.1jt / 33.3jt / 55.5jt,
   // tercatat di TARGET NOMINAL) lalu harus mencapai omset barang program
@@ -149,7 +149,6 @@ const RULES = {
     }
     return { tercapai: ctx.nominalRequired != null && ctx.omset >= ctx.nominalRequired, kekurangan }
   },
->>>>>>> 7f768dffc93f48f2fb6ac4eafab05fc3e520ce2e
 }
 
 function moneyFmt(n) {
@@ -163,23 +162,16 @@ function normName(s) {
   return (s || '').toString().trim().toUpperCase()
 }
 
-<<<<<<< HEAD
-=======
 function normCode(s) {
   return (s || '').toString().trim()
 }
 
->>>>>>> 7f768dffc93f48f2fb6ac4eafab05fc3e520ce2e
 function inPeriod(dateIso, period) {
   if (!period || !period.awal || !period.akhir) return true // no period defined -> no restriction
   if (!dateIso) return false
   return dateIso >= period.awal && dateIso <= period.akhir
 }
 
-<<<<<<< HEAD
-// Build lookup structures once per dataset
-export function buildProgramMeta(masterBarang, nominalWajib, periodeProgram) {
-=======
 // Urutan bulan untuk sorting dropdown filter (dukung singkatan Inggris &
 // Indonesia, jaga-jaga kalau sumber data berubah format).
 const MONTH_ORDER = ['JAN', 'FEB', 'MAR', 'APR', 'MEI', 'MAY', 'JUN', 'JUL', 'AGU', 'AGT', 'AUG', 'SEP', 'OKT', 'OCT', 'NOV', 'DES', 'DEC']
@@ -198,7 +190,6 @@ function sortBulan(list) {
 // index item -> daftar program yang memuat item tsb (dipakai untuk
 // mencocokkan baris penjualan ke program).
 export function buildProgramMeta(masterBarang) {
->>>>>>> 7f768dffc93f48f2fb6ac4eafab05fc3e520ce2e
   const programs = new Map() // key `${supp}||${program}` -> meta
   for (const row of masterBarang) {
     const key = `${row.supp}||${row.program}`
@@ -212,15 +203,6 @@ export function buildProgramMeta(masterBarang) {
     programs.get(key).items.push({ namaBarang: normName(row.namaBarang), wajib: !!row.wajib })
   }
 
-<<<<<<< HEAD
-  const nominalMap = new Map()
-  for (const n of nominalWajib) nominalMap.set(`${n.supp}||${n.program}`, n.nominal)
-
-  const periodeMap = new Map()
-  for (const p of periodeProgram) periodeMap.set(`${p.supp}||${p.program}`, { awal: p.awal, akhir: p.akhir })
-
-=======
->>>>>>> 7f768dffc93f48f2fb6ac4eafab05fc3e520ce2e
   // item -> list of programs it belongs to, keyed by supp
   const itemIndex = new Map() // `${supp}||${NAMA}` -> [{program, wajib}]
   for (const row of masterBarang) {
@@ -229,19 +211,6 @@ export function buildProgramMeta(masterBarang) {
     itemIndex.get(ikey).push({ program: row.program, wajib: !!row.wajib })
   }
 
-<<<<<<< HEAD
-  return { programs, nominalMap, periodeMap, itemIndex }
-}
-
-export function computeRecap(sales, masterBarang, nominalWajib, periodeProgram, opts = {}) {
-  const ignorePeriod = !!opts.ignorePeriod
-  const meta = buildProgramMeta(masterBarang, nominalWajib, periodeProgram)
-
-  const groups = new Map() // key kodeToko||supp||program
-
-  for (const row of sales) {
-    if (!row.supp || !row.namaBarang) continue
-=======
   return { programs, itemIndex }
 }
 
@@ -273,6 +242,8 @@ export function computeRecap(sales, masterBarang, rekapanProgram, opts = {}) {
       program: conf.program,
       period: (conf.awalProgram || conf.akhirProgram) ? { awal: conf.awalProgram, akhir: conf.akhirProgram } : null,
       nominalRequired: conf.targetNominal,
+      pengajuanPaket: conf.pengajuanPaket || 1,
+      formFisik: !!conf.formFisik,
       omset: 0,
       items: new Map(), // namaBarang -> {qty, nominal, wajib}
       transactions: [],
@@ -282,37 +253,11 @@ export function computeRecap(sales, masterBarang, rekapanProgram, opts = {}) {
 
   for (const row of sales) {
     if (!row.supp || !row.namaBarang || !row.kodeToko) continue
->>>>>>> 7f768dffc93f48f2fb6ac4eafab05fc3e520ce2e
     const ikey = `${row.supp}||${normName(row.namaBarang)}`
     const progs = meta.itemIndex.get(ikey)
     if (!progs || progs.length === 0) continue
 
     for (const p of progs) {
-<<<<<<< HEAD
-      const pkey = `${row.supp}||${p.program}`
-      const period = meta.periodeMap.get(pkey)
-      const effectivePeriod = ignorePeriod ? null : period
-      if (!inPeriod(row.tglFaktur, effectivePeriod)) continue
-
-      const gkey = `${row.kodeToko}||${pkey}`
-      if (!groups.has(gkey)) {
-        groups.set(gkey, {
-          kodeToko: row.kodeToko,
-          namaPelanggan: row.namaPelanggan,
-          alamatPelanggan: row.alamatPelanggan,
-          depo: row.depo,
-          kota: row.kota,
-          salesFaktur: row.salesFaktur,
-          supp: row.supp,
-          program: p.program,
-          period: period || null,
-          omset: 0,
-          items: new Map(), // namaBarang -> {qty, nominal, wajib}
-          transactions: [],
-        })
-      }
-      const g = groups.get(gkey)
-=======
       const gkey = `${row.supp}||${normCode(row.kodeToko)}||${p.program}`
       const g = groups.get(gkey)
       if (!g) continue // toko ini belum konfirmasi ikut program ini -> jangan dihitung
@@ -328,17 +273,13 @@ export function computeRecap(sales, masterBarang, rekapanProgram, opts = {}) {
       if (row.kota) g.kota = row.kota
       if (row.salesFaktur) g.salesFaktur = row.salesFaktur
 
->>>>>>> 7f768dffc93f48f2fb6ac4eafab05fc3e520ce2e
       g.omset += Number(row.nominal) || 0
       const nName = normName(row.namaBarang)
       if (!g.items.has(nName)) g.items.set(nName, { namaBarang: row.namaBarang, qty: 0, nominal: 0, wajib: p.wajib })
       const it = g.items.get(nName)
       it.qty += Number(row.qty) || 0
       it.nominal += Number(row.nominal) || 0
-<<<<<<< HEAD
-=======
       if (row.bulan) g.bulanSet.add(String(row.bulan).trim())
->>>>>>> 7f768dffc93f48f2fb6ac4eafab05fc3e520ce2e
       g.transactions.push({
         noFaktur: row.noFaktur,
         tglFaktur: row.tglFaktur,
@@ -359,11 +300,11 @@ export function computeRecap(sales, masterBarang, rekapanProgram, opts = {}) {
     const wajibItemNames = (programMeta?.items || []).filter((i) => i.wajib).map((i) => i.namaBarang)
     const boughtItemNames = Array.from(g.items.keys())
     const wajibBoughtNames = boughtItemNames.filter((n) => wajibItemNames.includes(n))
-<<<<<<< HEAD
-    const nominalRequired = meta.nominalMap.get(pkey) ?? null
-=======
+    // Total QTY (bukan sekadar jumlah varian berbeda) dari item-item wajib
+    // yang sudah dibeli -- dipakai program yang syaratnya berskala per
+    // paket (SUPERFAN).
+    const wajibQtyBought = wajibBoughtNames.reduce((sum, n) => sum + (g.items.get(n)?.qty || 0), 0)
     const nominalRequired = g.nominalRequired ?? null
->>>>>>> 7f768dffc93f48f2fb6ac4eafab05fc3e520ce2e
 
     const ctx = {
       omset: g.omset,
@@ -371,7 +312,9 @@ export function computeRecap(sales, masterBarang, rekapanProgram, opts = {}) {
       wajibItemNames,
       boughtItemNames,
       wajibBoughtNames,
+      wajibQtyBought,
       nominalRequired,
+      pengajuanPaket: g.pengajuanPaket,
     }
 
     const rule = RULES[g.program]
@@ -389,20 +332,26 @@ export function computeRecap(sales, masterBarang, rekapanProgram, opts = {}) {
       period: g.period,
       periodeDipakai: !ignorePeriod && !!g.period,
       omset: g.omset,
-      nominalRequired,
+      // nominalRequired: syarat omset EFEKTIF yang ditampilkan ke user --
+      // untuk program yang berskala per paket (SUPERFAN) ini sudah dikali
+      // jumlah paket; program lain tetap nilai aslinya dari Excel.
+      nominalRequired: result.nominalRequiredEffective !== undefined ? result.nominalRequiredEffective : nominalRequired,
+      pengajuanPaket: g.pengajuanPaket,
+      formFisik: g.formFisik,
       varianDibeli: boughtItemNames.map((n) => g.items.get(n).namaBarang),
       varianCount: boughtItemNames.length,
       totalVarianProgram: allItemNames.length,
       itemWajibDibeli: wajibBoughtNames,
       itemWajibTotal: wajibItemNames,
+      // wajibHave/wajibNeeded: progres item wajib yang ditampilkan ke user.
+      // Untuk SUPERFAN ini QTY (pcs) dan berskala per paket; program lain
+      // fallback ke jumlah varian wajib yang dibeli/tersedia (perilaku lama).
+      wajibHave: result.wajibHave !== undefined ? result.wajibHave : wajibBoughtNames.length,
+      wajibNeeded: result.wajibNeeded !== undefined ? result.wajibNeeded : wajibItemNames.length,
       tercapai: result.tercapai,
       kekurangan: result.kekurangan,
-<<<<<<< HEAD
-      reward: REWARD_LABEL[g.program] || '-',
-=======
       reward: getRewardLabel(g.program, nominalRequired),
       bulanList: sortBulan(Array.from(g.bulanSet)),
->>>>>>> 7f768dffc93f48f2fb6ac4eafab05fc3e520ce2e
       items: Array.from(g.items.values()).sort((a, b) => (b.wajib === a.wajib ? 0 : b.wajib ? 1 : -1)),
       transactions: g.transactions.sort((a, b) => (a.tglFaktur < b.tglFaktur ? -1 : 1)),
     })
@@ -430,10 +379,7 @@ function passesOtherFilters(r, f, skip) {
   if (f.depo && skip !== 'depo' && r.depo !== f.depo) return false
   if (f.kota && skip !== 'kota' && r.kota !== f.kota) return false
   if (f.sales && skip !== 'sales' && r.salesFaktur !== f.sales) return false
-<<<<<<< HEAD
-=======
   if (f.bulan && skip !== 'bulan' && !(r.bulanList || []).includes(f.bulan)) return false
->>>>>>> 7f768dffc93f48f2fb6ac4eafab05fc3e520ce2e
   if (f.status === 'Tercapai' && skip !== 'status' && !r.tercapai) return false
   if (f.status === 'Belum Tercapai' && skip !== 'status' && r.tercapai) return false
   return true
@@ -444,12 +390,6 @@ function passesOtherFilters(r, f, skip) {
 // currently-active filter (cross-filtering / cascading filters) so the
 // user can never pick a combination that yields zero rows.
 export function getFilterOptions(recap, filters = {}) {
-<<<<<<< HEAD
-  const sets = { supp: new Set(), program: new Set(), depo: new Set(), kota: new Set(), sales: new Set() }
-  for (const r of recap) {
-    for (const field of Object.keys(sets)) {
-      if (!passesOtherFilters(r, filters, field)) continue
-=======
   const sets = { supp: new Set(), program: new Set(), depo: new Set(), kota: new Set(), sales: new Set(), bulan: new Set() }
   for (const r of recap) {
     for (const field of Object.keys(sets)) {
@@ -458,7 +398,6 @@ export function getFilterOptions(recap, filters = {}) {
         for (const b of r.bulanList || []) sets.bulan.add(b)
         continue
       }
->>>>>>> 7f768dffc93f48f2fb6ac4eafab05fc3e520ce2e
       const v = r[FIELD_KEY[field]]
       if (v) sets[field].add(v)
     }
@@ -469,10 +408,7 @@ export function getFilterOptions(recap, filters = {}) {
     depo: Array.from(sets.depo).sort(),
     kota: Array.from(sets.kota).sort(),
     sales: Array.from(sets.sales).sort(),
-<<<<<<< HEAD
-=======
     bulan: sortBulan(Array.from(sets.bulan)),
->>>>>>> 7f768dffc93f48f2fb6ac4eafab05fc3e520ce2e
   }
 }
 
@@ -484,10 +420,7 @@ export function applyGlobalFilters(recap, filters = {}) {
     if (filters.depo && r.depo !== filters.depo) return false
     if (filters.kota && r.kota !== filters.kota) return false
     if (filters.sales && r.salesFaktur !== filters.sales) return false
-<<<<<<< HEAD
-=======
     if (filters.bulan && !(r.bulanList || []).includes(filters.bulan)) return false
->>>>>>> 7f768dffc93f48f2fb6ac4eafab05fc3e520ce2e
     if (filters.status === 'Tercapai' && !r.tercapai) return false
     if (filters.status === 'Belum Tercapai' && r.tercapai) return false
     return true
@@ -497,13 +430,6 @@ export function applyGlobalFilters(recap, filters = {}) {
 // ----------------------------------------------------------------------------
 // Rekap "Pengajuan Paket" (dari INPUT_REKAPAN_PROGRAM.xlsx)
 //
-<<<<<<< HEAD
-// Setiap baris rekapanProgram = satu toko mengajukan satu program (PENGAJUAN
-// PAKET). Barang yang termasuk program itu ada di masterBarang (nama_barang +
-// program). F.QTY di data penjualan untuk barang-barang tsb = qty yang sudah
-// jadi faktur / sudah dikirim ke toko. Selisihnya adalah qty yang MASIH PERLU
-// dikirim supaya pengajuan paket toko tsb terpenuhi.
-=======
 // Setiap baris rekapanProgram = satu toko mengajukan satu program. Ada dua
 // jenis program:
 //  - Program BARANG FISIK (BUCKET SEAL, KUNINGAN, PVCBV, SUPERFAN,
@@ -514,7 +440,6 @@ export function applyGlobalFilters(recap, filters = {}) {
 //    TIDAK ada barang fisik yang "dikirim", jadi kolom sudah
 //    terkirim/kekurangan kirim tidak relevan. Yang relevan adalah
 //    KEKURANGAN OMSET terhadap TARGET NOMINAL paket yang diajukan.
->>>>>>> 7f768dffc93f48f2fb6ac4eafab05fc3e520ce2e
 //
 // Semua baris rekapanProgram ditampilkan (tidak ada yang difilter/disembunyikan)
 // karena ini adalah data master sesuai instruksi.
@@ -528,9 +453,6 @@ export function computeKekuranganPaket(rekapanProgram, masterBarang, sales) {
     programItems.get(key).add(normName(m.namaBarang))
   }
 
-<<<<<<< HEAD
-  // supp||kodeToko||program -> { qty, nominal }
-=======
   // supp||kodeToko||program -> periode program milik toko itu (dari baris
   // INPUT_REKAPAN_PROGRAM-nya sendiri), dipakai supaya realisasi omset di
   // sini konsisten dengan Rekap Program (hanya hitung transaksi dalam
@@ -543,7 +465,6 @@ export function computeKekuranganPaket(rekapanProgram, masterBarang, sales) {
   }
 
   // supp||kodeToko||program -> { qty, nominal, bulanSet }
->>>>>>> 7f768dffc93f48f2fb6ac4eafab05fc3e520ce2e
   const realisasi = new Map()
   for (const row of sales) {
     if (!row.supp || !row.kodeToko || !row.namaBarang) continue
@@ -552,13 +473,6 @@ export function computeKekuranganPaket(rekapanProgram, masterBarang, sales) {
       if (!pkey.startsWith(`${row.supp}||`)) continue
       if (!items.has(nName)) continue
       const program = pkey.split('||')[1]
-<<<<<<< HEAD
-      const gkey = `${row.supp}||${row.kodeToko}||${program}`
-      if (!realisasi.has(gkey)) realisasi.set(gkey, { qty: 0, nominal: 0 })
-      const g = realisasi.get(gkey)
-      g.qty += Number(row.qty) || 0
-      g.nominal += Number(row.nominal) || 0
-=======
       const gkey = `${row.supp}||${normCode(row.kodeToko)}||${program}`
       const periode = periodeMap.get(gkey)
       if (!inPeriod(row.tglFaktur, periode)) continue
@@ -567,29 +481,10 @@ export function computeKekuranganPaket(rekapanProgram, masterBarang, sales) {
       g.qty += Number(row.qty) || 0
       g.nominal += Number(row.nominal) || 0
       if (row.bulan) g.bulanSet.add(String(row.bulan).trim())
->>>>>>> 7f768dffc93f48f2fb6ac4eafab05fc3e520ce2e
     }
   }
 
   return (rekapanProgram || []).map((r) => {
-<<<<<<< HEAD
-    const gkey = `${r.supp}||${r.kodeToko}||${r.program}`
-    const g = realisasi.get(gkey) || { qty: 0, nominal: 0 }
-    const kekuranganQty = Math.max((r.pengajuanPaket || 0) - g.qty, 0)
-    const paketTerpenuhi = (r.pengajuanPaket || 0) > 0 && g.qty >= r.pengajuanPaket
-    const nominalTerpenuhi = r.targetNominal != null && g.nominal >= r.targetNominal
-
-    return {
-      ...r,
-      qtyTerkirim: g.qty,
-      nominalTerkirim: g.nominal,
-      kekuranganQty,
-      paketTerpenuhi,
-      nominalTerpenuhi,
-    }
-  })
-}
-=======
     const gkey = `${r.supp}||${normCode(r.kodeToko)}||${r.program}`
     const g = realisasi.get(gkey) || { qty: 0, nominal: 0, bulanSet: new Set() }
     const isCashReward = CASH_REWARD_PROGRAMS.includes(r.program)
@@ -666,4 +561,3 @@ export function applyPaketFilters(rows, filters = {}) {
     return true
   })
 }
->>>>>>> 7f768dffc93f48f2fb6ac4eafab05fc3e520ce2e

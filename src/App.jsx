@@ -1,11 +1,11 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { Loader2, AlertTriangle, RotateCcw } from 'lucide-react'
 import Sidebar from './components/Sidebar'
+import MobileNav from './components/MobileNav'
 import Topbar from './components/Topbar'
 import KpiCards from './components/KpiCards'
 import ProgramCharts from './components/ProgramCharts'
 import RecapTable from './components/RecapTable'
-import PengajuanPaketTable from './components/PengajuanPaketTable'
 import MasterView from './components/MasterView'
 import GlobalFilterBar, { EMPTY_GLOBAL_FILTERS } from './components/GlobalFilterBar'
 import { useData } from './context/DataContext'
@@ -33,11 +33,7 @@ export default function App() {
     setFilters((f) => {
       const next = { ...f }
       let changed = false
-<<<<<<< HEAD
-      for (const field of ['program', 'supp', 'depo', 'kota', 'sales']) {
-=======
       for (const field of ['program', 'supp', 'depo', 'kota', 'sales', 'bulan']) {
->>>>>>> 7f768dffc93f48f2fb6ac4eafab05fc3e520ce2e
         if (next[field] && !filterOptions[field].includes(next[field])) {
           next[field] = ''
           changed = true
@@ -54,11 +50,7 @@ export default function App() {
       <CenterState>
         <div className="flex flex-col items-center gap-3 text-ink-700">
           <Loader2 size={28} className="animate-spin text-ink-900" />
-<<<<<<< HEAD
-          <div className="text-[14px]">Memuat data dari Supabase...</div>
-=======
           <div className="text-[14px]">Membaca data Excel dari public/data/...</div>
->>>>>>> 7f768dffc93f48f2fb6ac4eafab05fc3e520ce2e
         </div>
       </CenterState>
     )
@@ -92,7 +84,8 @@ export default function App() {
       />
       <div className="flex-1 min-w-0 flex flex-col">
         <Topbar active={active} sidebarHidden={sidebarHidden} onShowSidebar={() => setSidebarHidden(false)} />
-        <main className="flex-1 px-5 md:px-8 py-6 space-y-5">
+        {/* pb-20: ruang buat bottom nav di HP (md:pb-6 balik normal di layar besar) */}
+        <main className="flex-1 px-4 md:px-8 py-6 pb-24 md:pb-6 space-y-5">
           {(active === 'overview' || active === 'recap') && (
             <GlobalFilterBar filters={filters} setFilters={setFilters} options={filterOptions} />
           )}
@@ -104,10 +97,10 @@ export default function App() {
             </>
           )}
           {active === 'recap' && <RecapTable recap={filteredRecap} />}
-          {active === 'pengajuan' && <PengajuanPaketTable />}
           {active === 'master' && <MasterView />}
         </main>
       </div>
+      <MobileNav active={active} onChange={setActive} />
     </div>
   )
 }
