@@ -30,6 +30,7 @@ const TX_COLUMNS = [
 export default function DetailModal({ row, onClose }) {
   const [exporting, setExporting] = useState(null) // 'excel' | 'image' | null
   const modalCardRef = useRef(null)
+  const bodyScrollRef = useRef(null)
   const txScrollRef = useRef(null)
 
   if (!row) return null
@@ -49,11 +50,24 @@ export default function DetailModal({ row, onClose }) {
 
   const handleDownloadImage = async () => {
     setExporting('image')
+    // Modal-nya sendiri dibatasi tinggi (max-h) dan bagian tengahnya
+    // scroll internal supaya toko dengan BANYAK varian/transaksi tetap
+    // rapi di layar. Untuk screenshot, batasan itu perlu dilepas dulu
+    // supaya semua konten (bukan cuma yang kelihatan di layar) ikut
+    // terekam di gambar.
+    const bodyEl = bodyScrollRef.current
+    const cardEl = modalCardRef.current
     const scrollEl = txScrollRef.current
-    // Temporarily un-clip the scrollable transaction list so the image
-    // captures every row, not just what's currently visible on screen.
-    const prevMaxHeight = scrollEl?.style.maxHeight
-    const prevOverflow = scrollEl?.style.overflow
+    const prevBodyMaxHeight = bodyEl?.style.maxHeight
+    const prevBodyOverflow = bodyEl?.style.overflow
+    const prevCardMaxHeight = cardEl?.style.maxHeight
+    const prevScrollMaxHeight = scrollEl?.style.maxHeight
+    const prevScrollOverflow = scrollEl?.style.overflow
+    if (bodyEl) {
+      bodyEl.style.maxHeight = 'none'
+      bodyEl.style.overflow = 'visible'
+    }
+    if (cardEl) cardEl.style.maxHeight = 'none'
     if (scrollEl) {
       scrollEl.style.maxHeight = 'none'
       scrollEl.style.overflow = 'visible'
@@ -67,9 +81,14 @@ export default function DetailModal({ row, onClose }) {
       await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)))
       await downloadElementAsImage(filename, modalCardRef.current)
     } finally {
+      if (bodyEl) {
+        bodyEl.style.maxHeight = prevBodyMaxHeight || ''
+        bodyEl.style.overflow = prevBodyOverflow || ''
+      }
+      if (cardEl) cardEl.style.maxHeight = prevCardMaxHeight || ''
       if (scrollEl) {
-        scrollEl.style.maxHeight = prevMaxHeight || ''
-        scrollEl.style.overflow = prevOverflow || ''
+        scrollEl.style.maxHeight = prevScrollMaxHeight || ''
+        scrollEl.style.overflow = prevScrollOverflow || ''
       }
       setExporting(null)
     }
@@ -82,13 +101,21 @@ export default function DetailModal({ row, onClose }) {
     // jadi relatif ke ancestor itu -- bukan ke seluruh layar -- sehingga
     // sidebar di kiri kelihatan "menutupi" modal. Portal menghilangkan
     // masalah itu karena modal jadi anak langsung dari <body>.
-    <div className="fixed inset-0 z-50 flex items-start md:items-center justify-center bg-ink-950/50 p-3 md:p-6 overflow-y-auto" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink-950/50 p-3 md:p-6" onClick={onClose}>
+      {/*
+        Toko dengan BANYAK varian/transaksi (mis. BELANJA CERIA) bikin modal
+        ini jadi sangat panjang. Kalau seluruh kartu ikut di-scroll, judul &
+        tombol tutup ikut lenyap ke atas layar dan kelihatan seperti
+        "ketutup". Jadi sekarang kartu dibatasi max-h + flex-col: header
+        (judul, ringkasan status) selalu diam di tempat, dan HANYA bagian
+        tengah (varian item + riwayat transaksi) yang scroll sendiri.
+      */}
       <div
         ref={modalCardRef}
-        className="bg-sand-50 rounded-2xl w-full max-w-3xl my-6 shadow-xl rise-in"
+        className="bg-sand-50 rounded-2xl w-full max-w-3xl shadow-xl rise-in flex flex-col max-h-[calc(100vh-1.5rem)] md:max-h-[90vh] overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-start justify-between px-6 pt-5 pb-4 border-b border-sand-200">
+        <div className="shrink-0 flex items-start justify-between px-6 pt-5 pb-4 border-b border-sand-200">
           <div>
             <div className="text-[12.5px] uppercase tracking-wide text-brass-600 font-semibold mb-1">{row.supp} · {row.program}</div>
             <h2 className="text-lg font-bold text-ink-900">{row.namaPelanggan}</h2>
@@ -98,11 +125,12 @@ export default function DetailModal({ row, onClose }) {
               <span className="flex items-center gap-1"><Truck size={13} /> {row.depo}</span>
             </div>
           </div>
-          <button onClick={onClose} className="text-ink-700/50 hover:text-ink-900 p-1">
+          <button onClick={onClose} className="text-ink-700/50 hover:text-ink-900 p-1 shrink-0">
             <X size={20} />
           </button>
         </div>
 
+        <div ref={bodyScrollRef} className="overflow-y-auto">
         <div className="px-6 py-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3 border-b border-sand-200">
           <div>
             <div className="text-[12px] text-ink-700/60">Omset program</div>
@@ -242,6 +270,7 @@ export default function DetailModal({ row, onClose }) {
               </div>
             </div>
           </div>
+        </div>
         </div>
       </div>
     </div>,
