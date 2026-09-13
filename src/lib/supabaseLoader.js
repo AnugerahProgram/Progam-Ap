@@ -97,16 +97,33 @@ function normalizeRekapanProgram(rows) {
 }
 
 export async function loadAllData() {
+<<<<<<< HEAD
   const [salesRows, masterRows, rekapanRows] = await Promise.all([
     fetchAll('data_penjualan'),
     fetchAll('master_barang'),
     fetchAll('rekapan_program'),
+=======
+  const [salesRows, masterRows, rekapanRows, syncMetaRows] = await Promise.all([
+    fetchAll('data_penjualan'),
+    fetchAll('master_barang'),
+    fetchAll('rekapan_program'),
+    // Kalau tabel sync_meta belum ada (schema.sql versi lama / belum di-update),
+    // jangan sampai bikin seluruh loadAllData gagal -- cukup lastSyncedAt: null.
+    supabase.from('sync_meta').select('last_synced_at').eq('id', 1).maybeSingle()
+      .then(({ data, error }) => (error ? null : data)),
+>>>>>>> 7f768dffc93f48f2fb6ac4eafab05fc3e520ce2e
   ])
 
   const sales = normalizeSales(salesRows)
   const masterBarang = normalizeMasterBarang(masterRows)
   const rekapanProgram = normalizeRekapanProgram(rekapanRows)
   const { nominalWajib, periodeProgram } = deriveMasterAggregates(rekapanRows)
+<<<<<<< HEAD
 
   return { sales, masterBarang, rekapanProgram, nominalWajib, periodeProgram }
+=======
+  const lastSyncedAt = syncMetaRows?.last_synced_at || null
+
+  return { sales, masterBarang, rekapanProgram, nominalWajib, periodeProgram, lastSyncedAt }
+>>>>>>> 7f768dffc93f48f2fb6ac4eafab05fc3e520ce2e
 }

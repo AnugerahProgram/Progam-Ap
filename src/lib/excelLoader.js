@@ -130,7 +130,60 @@ function parseMasterWorkbook(wb) {
     }
   }
 
+<<<<<<< HEAD
   return { masterBarang, nominalWajib, periodeProgram }
+=======
+  // Sheet "JUMLAH PAKET" kamu tidak punya kolom SUPP -- ditebak dari
+  // PROGRAM-nya lewat data MASTER BARANG (lihat catatan yang sama di
+  // scripts/sync-excel-to-supabase.js, sumber kebenaran utama untuk sync).
+  const programToSupps = new Map()
+  for (const row of masterBarang) {
+    const pKey = row.program.toUpperCase()
+    if (!programToSupps.has(pKey)) programToSupps.set(pKey, new Set())
+    programToSupps.get(pKey).add(row.supp)
+  }
+
+  // Sheet baru: "JUMLAH PAKET" -> berapa paket program yang diambil tiap
+  // pelanggan. Syarat omset & syarat item wajib pada compute.js akan
+  // dikalikan dengan angka ini (default 1 kalau pelanggan tidak ada di
+  // sheet ini / tidak ikut paket berganda).
+  const jumlahPaket = []
+  const seenKeys = new Set()
+  const paketSheetName = findSheet('JUMLAH PAKET')
+  if (paketSheetName) {
+    const kRows = sheetToRows(wb.Sheets[paketSheetName])
+    const kIdx = buildIndex(kRows[0])
+    for (let r = 1; r < kRows.length; r++) {
+      const row = kRows[r]
+      if (!row || row.every((c) => c == null)) continue
+      const program = get(row, kIdx, 'PROGRAM')
+      if (!program) continue
+      const progKey = String(program).trim().toUpperCase()
+      let supp = get(row, kIdx, 'SUPP')
+      if (!supp) {
+        const candidates = programToSupps.get(progKey)
+        if (candidates && candidates.size === 1) supp = Array.from(candidates)[0]
+        else continue // ambigu atau program tidak dikenal -> lewati baris ini
+      }
+      const kodeToko = get(row, kIdx, 'KODE PELANGGAN', ['KODE TOKO'])
+      // Lewati baris dobel (kode_toko+supp+program sama persis) -- Excel-nya
+      // kadang ada baris kepencet dua kali.
+      const dedupeKey = `${(kodeToko || '').toString().trim().toUpperCase()}||${supp.toUpperCase()}||${progKey}`
+      if (seenKeys.has(dedupeKey)) continue
+      seenKeys.add(dedupeKey)
+      const jumlah = Number(get(row, kIdx, 'JUMLAH PAKET', ['PAKET', 'JML PAKET']))
+      jumlahPaket.push({
+        kodeToko,
+        namaPelanggan: get(row, kIdx, 'NAMA PELANGGAN'),
+        supp,
+        program: String(program).trim(),
+        jumlahPaket: jumlah > 0 ? jumlah : 1,
+      })
+    }
+  }
+
+  return { masterBarang, nominalWajib, periodeProgram, jumlahPaket }
+>>>>>>> 7f768dffc93f48f2fb6ac4eafab05fc3e520ce2e
 }
 
 export async function loadAllData() {
@@ -139,6 +192,11 @@ export async function loadAllData() {
     fetchWorkbook(MASTER_URL),
   ])
   const sales = parseSalesWorkbook(salesWb)
+<<<<<<< HEAD
   const { masterBarang, nominalWajib, periodeProgram } = parseMasterWorkbook(masterWb)
   return { sales, masterBarang, nominalWajib, periodeProgram }
+=======
+  const { masterBarang, nominalWajib, periodeProgram, jumlahPaket } = parseMasterWorkbook(masterWb)
+  return { sales, masterBarang, nominalWajib, periodeProgram, jumlahPaket }
+>>>>>>> 7f768dffc93f48f2fb6ac4eafab05fc3e520ce2e
 }

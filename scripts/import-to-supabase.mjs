@@ -160,6 +160,13 @@ function readMasterBarang(filePath) {
 function readRekapanProgram(filePath) {
   const wb = XLSX.readFile(filePath, { cellDates: true })
   const out = []
+<<<<<<< HEAD
+=======
+  const seenKeys = new Map() // `${supp}||${kodeToko}||${program}||${awalProgram}` -> index di out
+  const merged = [] // baris kombinasi sama tapi datanya beda -> DIGABUNG (bukan dibuang)
+  const exactDupes = [] // duplikat identik (aman, cuma dilaporkan biar jumlah baris jelas)
+  const skippedEmpty = [] // baris yg KODE TOKO / PROGRAM-nya kosong
+>>>>>>> 7f768dffc93f48f2fb6ac4eafab05fc3e520ce2e
 
   for (const sheetName of wb.SheetNames) {
     const rows = sheetToRows(wb.Sheets[sheetName])
@@ -172,9 +179,20 @@ function readRekapanProgram(filePath) {
       if (!row || row.every((c) => c == null)) continue
       const kodeToko = get(row, idx, 'KODE TOKO', ['KD TOKO'])
       const program = get(row, idx, 'PROGRAM')
+<<<<<<< HEAD
       if (!kodeToko || !program) continue
 
       out.push({
+=======
+      if (!kodeToko || !program) {
+        // baris r di sini 0-based dari sheetToRows (header=row 0), jadi baris
+        // asli di Excel = r + 1 (karena header ada di baris 1 Excel)
+        skippedEmpty.push({ sheetName, excelRow: r + 1, kodeToko: kodeToko || '(kosong)', program: program || '(kosong)' })
+        continue
+      }
+
+      const entry = {
+>>>>>>> 7f768dffc93f48f2fb6ac4eafab05fc3e520ce2e
         supp,
         kode_toko: String(kodeToko).trim(),
         nama_pelanggan: get(row, idx, 'NAMA PELANGGAN', ['NAMA TOKO']),
@@ -194,10 +212,66 @@ function readRekapanProgram(filePath) {
         })(),
         awal_program: toISODate(get(row, idx, 'AWAL PROGRAM')),
         akhir_program: toISODate(get(row, idx, 'AKHIR PROGRAM')),
+<<<<<<< HEAD
       })
     }
   }
   return out
+=======
+      }
+
+      // Tabel rekapan_program punya unique constraint di kombinasi
+      // (supp, kode_toko, program, awal_program). Excel-nya kadang ada
+      // baris kepencet dobel utk kombinasi yg sama, TAPI kadang itu bukan
+      // salah ketik -- toko yang sama mengajukan paket LAGI di periode
+      // program yang sama (mis. paket 1 lalu nyusul paket 2). Membuang
+      // salah satu baris di kasus ini salah, karena paket yang diajukan
+      // jadi hilang dari rekap.
+      //
+      // Jadi sekarang baris dgn kombinasi sama DIGABUNG jadi satu (bukan
+      // dibuang):
+      //   - pengajuan_paket -> DIJUMLAH (1 + 2 = 3 paket)
+      //   - form_fisik      -> AND (baru dianggap "sudah sampai" kalau
+      //                        SEMUA form dari tiap pengajuan sudah masuk)
+      //   - target_nominal  -> DIJUMLAH kalau dua-duanya ada; kalau cuma
+      //                        satu yang ada, pakai yang ada itu
+      //   - akhir_program   -> ambil yang PALING AKHIR (max)
+      //   - kolom lain (nama, alamat, depo, salesman, form fisik lama)
+      //     tetap pakai baris pertama
+      // Kalau isinya identik 100%, tetap dilaporkan sbg exact-dupe biar
+      // gampang dicek, tapi hasilnya sama saja (gabung ke 1 baris).
+      const dedupeKey = `${supp}||${entry.kode_toko.toUpperCase()}||${entry.program.toUpperCase()}||${entry.awal_program ?? ''}`
+      if (seenKeys.has(dedupeKey)) {
+        const prevIdx = seenKeys.get(dedupeKey)
+        const prev = out[prevIdx]
+        const sameData = prev.pengajuan_paket === entry.pengajuan_paket
+          && prev.form_fisik === entry.form_fisik
+          && prev.target_nominal === entry.target_nominal
+          && prev.akhir_program === entry.akhir_program
+        if (sameData) {
+          exactDupes.push({ sheetName, kodeToko: entry.kode_toko, program: entry.program })
+          continue
+        }
+
+        merged.push({ sheetName, kodeToko: entry.kode_toko, program: entry.program, prev: { ...prev }, entry })
+
+        out[prevIdx] = {
+          ...prev,
+          pengajuan_paket: prev.pengajuan_paket + entry.pengajuan_paket,
+          form_fisik: prev.form_fisik && entry.form_fisik,
+          target_nominal: prev.target_nominal == null && entry.target_nominal == null
+            ? null
+            : (prev.target_nominal ?? 0) + (entry.target_nominal ?? 0),
+          akhir_program: [prev.akhir_program, entry.akhir_program].filter(Boolean).sort().pop() ?? null,
+        }
+        continue
+      }
+      seenKeys.set(dedupeKey, out.length)
+      out.push(entry)
+    }
+  }
+  return { rows: out, merged, exactDupes, skippedEmpty }
+>>>>>>> 7f768dffc93f48f2fb6ac4eafab05fc3e520ce2e
 }
 
 // ---------------------------------------------------------------------------
@@ -258,13 +332,46 @@ async function main() {
   console.log(`Membaca file dari: ${SRC_DIR}`)
 
   const masterBarang = readMasterBarang(FILES.masterBarang)
+<<<<<<< HEAD
   const rekapanProgram = readRekapanProgram(FILES.rekapan)
+=======
+  const { rows: rekapanProgram, merged: rekapanMerged, exactDupes: rekapanExactDupes, skippedEmpty: rekapanSkippedEmpty } = readRekapanProgram(FILES.rekapan)
+>>>>>>> 7f768dffc93f48f2fb6ac4eafab05fc3e520ce2e
   const dataPenjualan = readDataPenjualan(FILES.penjualan)
 
   console.log(`  MASTER_BARANG.xlsx          -> ${masterBarang.length} baris`)
   console.log(`  INPUT_REKAPAN_PROGRAM.xlsx  -> ${rekapanProgram.length} baris`)
   console.log(`  DATA_PENJUALAN.xlsx         -> ${dataPenjualan.length} baris`)
 
+<<<<<<< HEAD
+=======
+  if (rekapanSkippedEmpty.length > 0) {
+    console.log(`\nPERINGATAN: ${rekapanSkippedEmpty.length} baris di INPUT_REKAPAN_PROGRAM.xlsx dilewati (KODE TOKO atau PROGRAM kosong):`)
+    for (const s of rekapanSkippedEmpty.slice(0, 20)) {
+      console.log(`   - [sheet ${s.sheetName}, baris excel ~${s.excelRow}] KODE TOKO: ${s.kodeToko} / PROGRAM: ${s.program}`)
+    }
+    if (rekapanSkippedEmpty.length > 20) console.log(`   ...dan ${rekapanSkippedEmpty.length - 20} baris lainnya`)
+  }
+
+  if (rekapanExactDupes.length > 0) {
+    console.log(`\nInfo: ${rekapanExactDupes.length} baris di INPUT_REKAPAN_PROGRAM.xlsx adalah duplikat identik (baris ke-input dobel persis sama) -- otomatis digabung jadi 1, aman diabaikan:`)
+    for (const d of rekapanExactDupes.slice(0, 20)) {
+      console.log(`   - [sheet ${d.sheetName}] ${d.kodeToko} / ${d.program}`)
+    }
+    if (rekapanExactDupes.length > 20) console.log(`   ...dan ${rekapanExactDupes.length - 20} baris lainnya`)
+  }
+
+  if (rekapanMerged.length > 0) {
+    console.log(`\nInfo: ${rekapanMerged.length} baris di INPUT_REKAPAN_PROGRAM.xlsx punya SUPP+KODE TOKO+PROGRAM+AWAL PROGRAM yang sama tapi isinya beda -- diperlakukan sbg PENGAJUAN TAMBAHAN dan DIGABUNG (pengajuan_paket dijumlah, bukan dibuang):`)
+    for (const d of rekapanMerged.slice(0, 20)) {
+      const gabungan = d.prev.pengajuan_paket + d.entry.pengajuan_paket
+      console.log(`   - [sheet ${d.sheetName}] ${d.kodeToko} / ${d.program}: pengajuan_paket ${d.prev.pengajuan_paket} + ${d.entry.pengajuan_paket} = ${gabungan}`)
+    }
+    if (rekapanMerged.length > 20) console.log(`   ...dan ${rekapanMerged.length - 20} baris lainnya`)
+    console.log(`   Kalau ada kasus yang SEHARUSNYA tidak digabung (misal beda periode program tapi kebetulan kena kunci sama), cek daftar di atas manual.`)
+  }
+
+>>>>>>> 7f768dffc93f48f2fb6ac4eafab05fc3e520ce2e
   console.log('\nMengosongkan tabel lama (full refresh)...')
   for (const table of ['data_penjualan', 'rekapan_program', 'master_barang']) {
     const { error } = await supabase.from(table).delete().neq('id', -1)
@@ -279,6 +386,17 @@ async function main() {
   await upsertBatched('rekapan_program', rekapanProgram)
   await upsertBatched('data_penjualan', dataPenjualan)
 
+<<<<<<< HEAD
+=======
+  console.log('\nUpdate waktu sync (sync_meta)...')
+  const { error: metaErr } = await supabase.from('sync_meta').upsert({ id: 1, last_synced_at: new Date().toISOString() })
+  if (metaErr) {
+    // Tidak fatal -- data utama sudah berhasil ke-upload. Kemungkinan besar
+    // tabel sync_meta belum dibuat (jalankan ulang supabase/schema.sql).
+    console.warn('Peringatan: gagal update sync_meta:', metaErr.message)
+  }
+
+>>>>>>> 7f768dffc93f48f2fb6ac4eafab05fc3e520ce2e
   console.log('\nSelesai. Data sudah dipindahkan ke Supabase.')
 }
 

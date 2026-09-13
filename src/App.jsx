@@ -33,7 +33,11 @@ export default function App() {
     setFilters((f) => {
       const next = { ...f }
       let changed = false
+<<<<<<< HEAD
       for (const field of ['program', 'supp', 'depo', 'kota', 'sales']) {
+=======
+      for (const field of ['program', 'supp', 'depo', 'kota', 'sales', 'bulan']) {
+>>>>>>> 7f768dffc93f48f2fb6ac4eafab05fc3e520ce2e
         if (next[field] && !filterOptions[field].includes(next[field])) {
           next[field] = ''
           changed = true
@@ -50,7 +54,11 @@ export default function App() {
       <CenterState>
         <div className="flex flex-col items-center gap-3 text-ink-700">
           <Loader2 size={28} className="animate-spin text-ink-900" />
+<<<<<<< HEAD
           <div className="text-[14px]">Memuat data dari Supabase...</div>
+=======
+          <div className="text-[14px]">Membaca data Excel dari public/data/...</div>
+>>>>>>> 7f768dffc93f48f2fb6ac4eafab05fc3e520ce2e
         </div>
       </CenterState>
     )

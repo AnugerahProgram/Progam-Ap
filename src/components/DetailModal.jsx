@@ -21,6 +21,11 @@ export default function DetailModal({ row, onClose }) {
   if (!row) return null
 
   const filename = `transaksi-${row.kodeToko}-${row.program}`.replace(/\s+/g, '_')
+<<<<<<< HEAD
+=======
+  const grandTotalQty = row.transactions.reduce((s, t) => s + (Number(t.qty) || 0), 0)
+  const grandTotalNominal = row.transactions.reduce((s, t) => s + (Number(t.nominal) || 0), 0)
+>>>>>>> 7f768dffc93f48f2fb6ac4eafab05fc3e520ce2e
 
   const handleDownloadExcel = async () => {
     setExporting('excel')
@@ -169,7 +174,11 @@ export default function DetailModal({ row, onClose }) {
             </div>
           </div>
           <div className="bg-sand-50 rounded-lg">
+<<<<<<< HEAD
             <div ref={txScrollRef} className="max-h-64 overflow-y-auto rounded-lg border border-sand-200">
+=======
+            <div ref={txScrollRef} className="max-h-64 overflow-y-auto rounded-t-lg border border-sand-200">
+>>>>>>> 7f768dffc93f48f2fb6ac4eafab05fc3e520ce2e
               <table className="w-full text-[12.5px]">
                 <thead className="bg-sand-100 text-ink-700/70 sticky top-0">
                   <tr>
@@ -193,6 +202,20 @@ export default function DetailModal({ row, onClose }) {
                 </tbody>
               </table>
             </div>
+<<<<<<< HEAD
+=======
+            <div className="flex items-center justify-between px-3 py-2.5 rounded-b-lg border border-t-0 border-sand-200 bg-sand-100">
+              <span className="text-[12.5px] font-semibold text-ink-900 uppercase tracking-wide">Grand Total</span>
+              <div className="flex items-center gap-5">
+                <span className="text-[12.5px] text-ink-700/70">
+                  Qty: <b className="text-ink-900">{grandTotalQty.toLocaleString('id-ID')}</b>
+                </span>
+                <span className="text-[13px] text-ink-700/70">
+                  Nominal: <b className="text-ink-900">{formatRupiah(grandTotalNominal)}</b>
+                </span>
+              </div>
+            </div>
+>>>>>>> 7f768dffc93f48f2fb6ac4eafab05fc3e520ce2e
           </div>
         </div>
       </div>

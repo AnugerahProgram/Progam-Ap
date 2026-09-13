@@ -10,6 +10,18 @@ export function formatDate(iso) {
   return d.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })
 }
 
+<<<<<<< HEAD
+=======
+export function formatDateTime(iso) {
+  if (!iso) return '-'
+  const d = new Date(iso)
+  if (isNaN(d.getTime())) return String(iso)
+  return d.toLocaleString('id-ID', {
+    day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
+  })
+}
+
+>>>>>>> 7f768dffc93f48f2fb6ac4eafab05fc3e520ce2e
 export function formatDateRange(awal, akhir) {
   if (!awal || !akhir) return 'Sepanjang data'
   return `${formatDate(awal)} – ${formatDate(akhir)}`
