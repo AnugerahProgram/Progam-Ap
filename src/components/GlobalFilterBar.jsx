@@ -1,7 +1,7 @@
 import React from 'react'
 import { SlidersHorizontal, X } from 'lucide-react'
 
-function Select({ value, onChange, options, placeholder }) {
+function Select({ value, onChange, options, placeholder, formatLabel }) {
   return (
     <select
       value={value}
@@ -10,13 +10,13 @@ function Select({ value, onChange, options, placeholder }) {
     >
       <option value="">{placeholder}</option>
       {options.map((o) => (
-        <option key={o} value={o}>{o}</option>
+        <option key={o} value={o}>{formatLabel ? formatLabel(o) : o}</option>
       ))}
     </select>
   )
 }
 
-export const EMPTY_GLOBAL_FILTERS = { program: '', supp: '', depo: '', kota: '', sales: '', bulan: '', status: '' }
+export const EMPTY_GLOBAL_FILTERS = { program: '', supp: '', depo: '', kota: '', sales: '', bulan: '', status: '', pengajuanPaket: '' }
 
 // Urutan filter: Depo, Sales, Bulan, Supplier, Program, Status (sesuai
 // permintaan), lalu Kota di paling akhir sebagai filter tambahan.
@@ -39,6 +39,13 @@ export default function GlobalFilterBar({ filters, setFilters, options }) {
       <Select value={filters.bulan} onChange={update('bulan')} options={options.bulan} placeholder="Semua Bulan" />
       <Select value={filters.supp} onChange={update('supp')} options={options.supp} placeholder="Semua Supplier" />
       <Select value={filters.program} onChange={update('program')} options={options.program} placeholder="Semua Program" />
+      <Select
+        value={filters.pengajuanPaket}
+        onChange={update('pengajuanPaket')}
+        options={options.pengajuanPaket}
+        placeholder="Semua Pengajuan Paket"
+        formatLabel={(o) => `${o} Paket`}
+      />
       <Select
         value={filters.status}
         onChange={update('status')}

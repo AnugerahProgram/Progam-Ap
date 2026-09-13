@@ -33,7 +33,7 @@ export default function App() {
     setFilters((f) => {
       const next = { ...f }
       let changed = false
-      for (const field of ['program', 'supp', 'depo', 'kota', 'sales', 'bulan']) {
+      for (const field of ['program', 'supp', 'depo', 'kota', 'sales', 'bulan', 'pengajuanPaket']) {
         if (next[field] && !filterOptions[field].includes(next[field])) {
           next[field] = ''
           changed = true

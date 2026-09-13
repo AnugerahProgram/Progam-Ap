@@ -367,7 +367,7 @@ export function computeRecap(sales, masterBarang, rekapanProgram, opts = {}) {
 }
 
 // Field name -> key on a recap row
-const FIELD_KEY = { program: 'program', supp: 'supp', depo: 'depo', kota: 'kota', sales: 'salesFaktur' }
+const FIELD_KEY = { program: 'program', supp: 'supp', depo: 'depo', kota: 'kota', sales: 'salesFaktur', pengajuanPaket: 'pengajuanPaket' }
 
 // Whether row `r` passes filter `f`, ignoring the field named `skip`.
 // This lets each dropdown's own option list react to every OTHER active
@@ -380,6 +380,7 @@ function passesOtherFilters(r, f, skip) {
   if (f.kota && skip !== 'kota' && r.kota !== f.kota) return false
   if (f.sales && skip !== 'sales' && r.salesFaktur !== f.sales) return false
   if (f.bulan && skip !== 'bulan' && !(r.bulanList || []).includes(f.bulan)) return false
+  if (f.pengajuanPaket && skip !== 'pengajuanPaket' && String(r.pengajuanPaket ?? 1) !== String(f.pengajuanPaket)) return false
   if (f.status === 'Tercapai' && skip !== 'status' && !r.tercapai) return false
   if (f.status === 'Belum Tercapai' && skip !== 'status' && r.tercapai) return false
   return true
@@ -390,12 +391,16 @@ function passesOtherFilters(r, f, skip) {
 // currently-active filter (cross-filtering / cascading filters) so the
 // user can never pick a combination that yields zero rows.
 export function getFilterOptions(recap, filters = {}) {
-  const sets = { supp: new Set(), program: new Set(), depo: new Set(), kota: new Set(), sales: new Set(), bulan: new Set() }
+  const sets = { supp: new Set(), program: new Set(), depo: new Set(), kota: new Set(), sales: new Set(), bulan: new Set(), pengajuanPaket: new Set() }
   for (const r of recap) {
     for (const field of Object.keys(sets)) {
       if (!passesOtherFilters(r, filters, field)) continue
       if (field === 'bulan') {
         for (const b of r.bulanList || []) sets.bulan.add(b)
+        continue
+      }
+      if (field === 'pengajuanPaket') {
+        sets.pengajuanPaket.add(String(r.pengajuanPaket ?? 1))
         continue
       }
       const v = r[FIELD_KEY[field]]
@@ -409,6 +414,7 @@ export function getFilterOptions(recap, filters = {}) {
     kota: Array.from(sets.kota).sort(),
     sales: Array.from(sets.sales).sort(),
     bulan: sortBulan(Array.from(sets.bulan)),
+    pengajuanPaket: Array.from(sets.pengajuanPaket).sort((a, b) => Number(a) - Number(b)),
   }
 }
 
@@ -421,6 +427,7 @@ export function applyGlobalFilters(recap, filters = {}) {
     if (filters.kota && r.kota !== filters.kota) return false
     if (filters.sales && r.salesFaktur !== filters.sales) return false
     if (filters.bulan && !(r.bulanList || []).includes(filters.bulan)) return false
+    if (filters.pengajuanPaket && String(r.pengajuanPaket ?? 1) !== String(filters.pengajuanPaket)) return false
     if (filters.status === 'Tercapai' && !r.tercapai) return false
     if (filters.status === 'Belum Tercapai' && r.tercapai) return false
     return true
