@@ -3,6 +3,15 @@ export function formatRupiah(n) {
   return 'Rp ' + Math.round(n).toLocaleString('id-ID')
 }
 
+// Angka biasa dengan pemisah ribuan (titik, gaya Indonesia), tanpa prefix
+// "Rp". Dipakai untuk kolom seperti "Pengajuan Paket" yang kadang berisi
+// angka besar (mis. toko INLITE yang nilainya sebenarnya nominal, bukan
+// jumlah paket) supaya tetap gampang dibaca (10.000.000, bukan 10000000).
+export function formatNumber(n) {
+  if (n === null || n === undefined || isNaN(n)) return '-'
+  return Math.round(n).toLocaleString('id-ID')
+}
+
 export function formatDate(iso) {
   if (!iso) return '-'
   const d = new Date(iso)

@@ -3,6 +3,7 @@ import { ChevronRight, FileSpreadsheet, ImageDown, Loader2, CheckCircle2, Circle
 import StatusBadge from './StatusBadge'
 import DetailModal from './DetailModal'
 import { formatRupiah } from '../lib/format'
+import { formatPengajuanPaket, pengajuanPaketLabel } from '../lib/pengajuanPaket'
 import { downloadExcel, downloadElementAsImage } from '../lib/exportUtils'
 
 const PAGE_SIZE = 20
@@ -17,7 +18,7 @@ const EXPORT_COLUMNS = [
   { label: 'Program', key: 'program', width: 14 },
   { label: 'Omset', key: 'omset', width: 18, numFmt: '#,##0', align: 'right' },
   { label: 'Varian Dibeli', value: (r) => `${r.varianCount}/${r.totalVarianProgram}`, width: 14, align: 'center' },
-  { label: 'Pengajuan Paket', key: 'pengajuanPaket', width: 14, align: 'center' },
+  { label: 'Pengajuan Paket', value: (r) => formatPengajuanPaket(r), width: 18, align: 'right' },
   { label: 'Form Fisik', value: (r) => (r.formFisik ? 'Sudah sampai' : 'Belum sampai'), width: 16, align: 'center' },
   { label: 'Status', value: (r) => (r.tercapai ? 'Tercapai' : 'Belum Tercapai'), width: 16, align: 'center' },
 ]
@@ -164,7 +165,7 @@ export default function RecapTable({ recap }) {
                       </div>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-center font-semibold text-ink-900">{r.pengajuanPaket ?? 1}</td>
+                  <td className="px-4 py-3 text-center font-semibold text-ink-900 whitespace-nowrap">{formatPengajuanPaket(r)}</td>
                   <td className="px-4 py-3"><FormFisikDot formFisik={r.formFisik} /></td>
                   <td className="px-4 py-3"><StatusBadge tercapai={r.tercapai} /></td>
                   <td className="px-4 py-3 text-ink-700/40"><ChevronRight size={16} /></td>
@@ -219,8 +220,8 @@ export default function RecapTable({ recap }) {
                   </div>
                 </div>
                 <div>
-                  <div className="text-ink-700/50 text-[11px] flex items-center gap-1"><Package size={10} /> Pengajuan Paket</div>
-                  <div className="font-semibold text-ink-900">{r.pengajuanPaket ?? 1}</div>
+                  <div className="text-ink-700/50 text-[11px] flex items-center gap-1"><Package size={10} /> {pengajuanPaketLabel(r)}</div>
+                  <div className="font-semibold text-ink-900">{formatPengajuanPaket(r)}</div>
                 </div>
                 <div>
                   <div className="text-ink-700/50 text-[11px]">Form Fisik</div>

@@ -7,7 +7,7 @@
 // fisik). Untuk program-program ini kolom "sudah terkirim" / "kekurangan
 // kirim" di tabel Pengajuan Paket TIDAK relevan — yang relevan adalah
 // kekurangan OMSET terhadap target yang dipilih.
-const CASH_REWARD_PROGRAMS = ['BELANJA CERIA', 'DISPLAY HOKI']
+export const CASH_REWARD_PROGRAMS = ['BELANJA CERIA', 'DISPLAY HOKI']
 
 // BELANJA CERIA: reward berjenjang sesuai omset akumulasi 1 Jul–30 Sep.
 // Toko "mengajukan" salah satu paket (dicatat di kolom TARGET NOMINAL),

@@ -1,7 +1,9 @@
 import React, { useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { X, CheckCircle2, Circle, MapPin, Store, Truck, FileSpreadsheet, ImageDown, Loader2, CircleDashed, Package } from 'lucide-react'
 import StatusBadge from './StatusBadge'
 import { formatRupiah, formatDate, formatDateRange } from '../lib/format'
+import { formatPengajuanPaket, pengajuanPaketLabel } from '../lib/pengajuanPaket'
 import { downloadExcel, downloadElementAsImage } from '../lib/exportUtils'
 
 function FormFisikMini({ formFisik }) {
@@ -73,7 +75,13 @@ export default function DetailModal({ row, onClose }) {
     }
   }
 
-  return (
+  return createPortal(
+    // Dirender lewat portal ke document.body: sebelumnya modal ini
+    // ditumpuk di dalam <main>, jadi kalau ada ancestor yang bikin
+    // "containing block" baru (transform/filter/dsb), `fixed inset-0`
+    // jadi relatif ke ancestor itu -- bukan ke seluruh layar -- sehingga
+    // sidebar di kiri kelihatan "menutupi" modal. Portal menghilangkan
+    // masalah itu karena modal jadi anak langsung dari <body>.
     <div className="fixed inset-0 z-50 flex items-start md:items-center justify-center bg-ink-950/50 p-3 md:p-6 overflow-y-auto" onClick={onClose}>
       <div
         ref={modalCardRef}
@@ -109,8 +117,8 @@ export default function DetailModal({ row, onClose }) {
             <div className="font-bold text-ink-900">{row.varianCount} dari {row.totalVarianProgram}</div>
           </div>
           <div>
-            <div className="text-[12px] text-ink-700/60 flex items-center gap-1"><Package size={12} /> Pengajuan Paket</div>
-            <div className="font-bold text-ink-900">{row.pengajuanPaket ?? 1}</div>
+            <div className="text-[12px] text-ink-700/60 flex items-center gap-1"><Package size={12} /> {pengajuanPaketLabel(row)}</div>
+            <div className="font-bold text-ink-900">{formatPengajuanPaket(row)}</div>
           </div>
           <div>
             <div className="text-[12px] text-ink-700/60">Form Fisik</div>
@@ -236,6 +244,7 @@ export default function DetailModal({ row, onClose }) {
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }
