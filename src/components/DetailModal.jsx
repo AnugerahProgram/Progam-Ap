@@ -61,23 +61,37 @@ export default function DetailModal({ row, onClose }) {
     const prevBodyMaxHeight = bodyEl?.style.maxHeight
     const prevBodyOverflow = bodyEl?.style.overflow
     const prevCardMaxHeight = cardEl?.style.maxHeight
+    const prevCardAnimation = cardEl?.style.animation
+    const prevCardOpacity = cardEl?.style.opacity
     const prevScrollMaxHeight = scrollEl?.style.maxHeight
     const prevScrollOverflow = scrollEl?.style.overflow
     if (bodyEl) {
       bodyEl.style.maxHeight = 'none'
       bodyEl.style.overflow = 'visible'
     }
-    if (cardEl) cardEl.style.maxHeight = 'none'
+    if (cardEl) {
+      cardEl.style.maxHeight = 'none'
+      // The modal opens with a "rise-in" fade/slide-in animation (see
+      // index.css) that starts from opacity: 0. If the person clicks
+      // "Download JPG" right after opening the modal, html2canvas can grab
+      // its snapshot while that animation is still mid-flight, producing an
+      // image where every element looks faint/washed-out instead of
+      // outright missing (partial opacity, not zero). Killing the
+      // animation and pinning opacity to 1 guarantees we always capture the
+      // fully-settled, fully-opaque state regardless of timing.
+      cardEl.style.animation = 'none'
+      cardEl.style.opacity = '1'
+    }
     if (scrollEl) {
       scrollEl.style.maxHeight = 'none'
       scrollEl.style.overflow = 'visible'
     }
     try {
-      // Let the browser finish reflowing and painting the now-unclipped
-      // layout before we snapshot it. Without this, html2canvas can start
-      // reading element positions while the layout above (the item grid)
-      // is still settling from the height change below it, producing an
-      // image with overlapping/misplaced text.
+      // Let the browser finish reflowing and painting the now-unclipped,
+      // fully-opaque layout before we snapshot it. Without this, html2canvas
+      // can start reading element positions/styles while the changes above
+      // are still settling, producing an image with overlapping/misplaced
+      // or faint text.
       await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)))
       await downloadElementAsImage(filename, modalCardRef.current)
     } finally {
@@ -85,7 +99,11 @@ export default function DetailModal({ row, onClose }) {
         bodyEl.style.maxHeight = prevBodyMaxHeight || ''
         bodyEl.style.overflow = prevBodyOverflow || ''
       }
-      if (cardEl) cardEl.style.maxHeight = prevCardMaxHeight || ''
+      if (cardEl) {
+        cardEl.style.maxHeight = prevCardMaxHeight || ''
+        cardEl.style.animation = prevCardAnimation || ''
+        cardEl.style.opacity = prevCardOpacity || ''
+      }
       if (scrollEl) {
         scrollEl.style.maxHeight = prevScrollMaxHeight || ''
         scrollEl.style.overflow = prevScrollOverflow || ''
