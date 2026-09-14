@@ -183,35 +183,20 @@ export default function DetailModal({ row, onClose }) {
               </div>
             )}
           </div>
-          <table className="w-full" style={{ borderCollapse: 'separate', borderSpacing: '3px' }}>
-            <tbody>
-              {Array.from({ length: Math.ceil(row.items.length / 2) }).map((_, rowIdx) => {
-                const left = row.items[rowIdx * 2]
-                const right = row.items[rowIdx * 2 + 1]
-                return (
-                  <tr key={rowIdx}>
-                    {[left, right].map((it, colIdx) =>
-                      it ? (
-                        <td key={it.namaBarang} className="align-top" style={{ width: '50%' }}>
-                          <div
-                            className="flex items-center gap-2 text-[13px] px-2.5 rounded-lg bg-white border border-sand-200"
-                            style={{ height: '34px', lineHeight: '15px' }}
-                          >
-                            <CheckCircle2 size={15} className="text-pine-500 shrink-0" />
-                            <span className="truncate">{it.namaBarang}</span>
-                            {it.wajib && <span className="ml-auto text-[11px] text-brass-600 font-semibold shrink-0">WAJIB</span>}
-                            <span className="text-ink-700/50 text-[12px] shrink-0">×{it.qty}</span>
-                          </div>
-                        </td>
-                      ) : (
-                        <td key={`empty-${colIdx}`} style={{ width: '50%' }} />
-                      )
-                    )}
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {row.items.map((it) => (
+              <div
+                key={it.namaBarang}
+                className="flex items-center gap-2 text-[13px] px-2.5 rounded-lg bg-white border border-sand-200"
+                style={{ height: '34px' }}
+              >
+                <CheckCircle2 size={15} className="text-pine-500 shrink-0" />
+                <span className="truncate">{it.namaBarang}</span>
+                {it.wajib && <span className="ml-auto text-[11px] text-brass-600 font-semibold shrink-0">WAJIB</span>}
+                <span className="text-ink-700/50 text-[12px] shrink-0">×{it.qty}</span>
+              </div>
+            ))}
+          </div>
         </div>
 
         <div className="px-6 py-4">
