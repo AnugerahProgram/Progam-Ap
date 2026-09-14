@@ -8,12 +8,12 @@ import { downloadExcel, downloadElementAsImage } from '../lib/exportUtils'
 
 function FormFisikMini({ formFisik }) {
   return formFisik ? (
-    <span className="inline-flex items-center gap-1 text-pine-600 font-bold">
-      <CheckCircle2 size={14} /> Sudah sampai
+    <span className="inline-flex items-center gap-1 text-sky-600 font-bold">
+      <CheckCircle2 size={14} /> Sudah ada
     </span>
   ) : (
-    <span className="inline-flex items-center gap-1 text-clay-600 font-bold">
-      <CircleDashed size={14} /> Belum sampai
+    <span className="inline-flex items-center gap-1 text-slate-500 font-bold">
+      <CircleDashed size={14} /> Belum ada
     </span>
   )
 }

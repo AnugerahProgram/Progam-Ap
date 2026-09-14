@@ -89,7 +89,7 @@ function normalizeRekapanProgram(rows) {
     salesman: normPersonName(r.salesman),
     program: r.program,
     pengajuanPaket: Number(r.pengajuan_paket) || 0,
-    // 0 di Excel -> false -> "Belum sampai ke kantor"
+    // 0 di Excel -> false -> "Belum ada"
     formFisik: !!r.form_fisik,
     targetNominal: r.target_nominal == null ? null : Number(r.target_nominal),
     awalProgram: r.awal_program,

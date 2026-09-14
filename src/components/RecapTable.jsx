@@ -20,18 +20,18 @@ const EXPORT_COLUMNS = [
   { label: 'Omset', key: 'omset', width: 18, numFmt: '#,##0', align: 'right' },
   { label: 'Varian Dibeli', value: (r) => `${r.varianCount}/${r.totalVarianProgram}`, width: 14, align: 'center' },
   { label: 'Pengajuan Paket', value: (r) => formatPengajuanPaket(r), width: 18, align: 'right' },
-  { label: 'Form Fisik', value: (r) => (r.formFisik ? 'Sudah sampai' : 'Belum sampai'), width: 16, align: 'center' },
+  { label: 'Form Fisik', value: (r) => (r.formFisik ? 'Sudah ada' : 'Belum ada'), width: 16, align: 'center' },
   { label: 'Status', value: (r) => (r.tercapai ? 'Tercapai' : 'Belum Tercapai'), width: 16, align: 'center' },
 ]
 
 function FormFisikDot({ formFisik }) {
   return formFisik ? (
-    <span className="inline-flex items-center gap-1 text-pine-600 text-[12px] font-medium">
-      <CheckCircle2 size={13} /> Sudah sampai
+    <span className="inline-flex items-center gap-1 text-sky-600 text-[12px] font-medium">
+      <CheckCircle2 size={13} /> Sudah ada
     </span>
   ) : (
-    <span className="inline-flex items-center gap-1 text-clay-600 text-[12px] font-medium">
-      <CircleDashed size={13} /> Belum sampai
+    <span className="inline-flex items-center gap-1 text-slate-500 text-[12px] font-medium">
+      <CircleDashed size={13} /> Belum ada
     </span>
   )
 }
@@ -66,18 +66,19 @@ export default function RecapTable({ recap }) {
   useEffect(() => { setPage(1) }, [recap, kodeToko, namaPelanggan])
 
   // Subtotal "Pengajuan Paket" dari SELURUH baris yang lolos filter (bukan
-  // cuma yang tampil di halaman ini). Dipisah dua: program barang fisik
-  // (jumlah paket) vs program reward uang (nominal Rp), karena satuannya
-  // beda dan tidak boleh dijumlah jadi satu angka.
+  // cuma yang tampil di halaman ini). Program reward uang (BELANJA CERIA,
+  // DISPLAY HOKI -- ini punya supplier INLITE) nilainya nominal Rp, bukan
+  // jumlah paket, dan yang diminta cuma jumlah BARIS-nya (bukan dijumlah
+  // nominalnya), jadi dihitung terpisah dari subtotal paket program lain.
   const subtotal = useMemo(() => {
     let paket = 0
-    let nominal = 0
+    let inliteBaris = 0
     for (const r of filtered) {
-      const val = r.pengajuanPaket ?? 1
-      if (CASH_REWARD_PROGRAMS.includes(r.program)) nominal += val
-      else paket += val
+      const isInlite = r.supp === 'INLITE' || CASH_REWARD_PROGRAMS.includes(r.program)
+      if (isInlite) inliteBaris += 1
+      else paket += r.pengajuanPaket ?? 1
     }
-    return { paket, nominal }
+    return { paket, inliteBaris }
   }, [filtered])
 
   const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
@@ -203,8 +204,8 @@ export default function RecapTable({ recap }) {
                   </td>
                   <td className="px-4 py-2.5 text-center whitespace-nowrap">
                     {subtotal.paket > 0 && <div>{formatNumber(subtotal.paket)} paket</div>}
-                    {subtotal.nominal > 0 && <div>{formatRupiah(subtotal.nominal)}</div>}
-                    {subtotal.paket === 0 && subtotal.nominal === 0 && '-'}
+                    {subtotal.inliteBaris > 0 && <div>{subtotal.inliteBaris} baris (INLITE)</div>}
+                    {subtotal.paket === 0 && subtotal.inliteBaris === 0 && '-'}
                   </td>
                   <td colSpan={3}></td>
                 </tr>
@@ -271,8 +272,8 @@ export default function RecapTable({ recap }) {
               <span className="text-ink-700/60 uppercase tracking-wide">Subtotal Pengajuan Paket</span>
               <span className="font-semibold text-ink-900 text-right">
                 {subtotal.paket > 0 && <div>{formatNumber(subtotal.paket)} paket</div>}
-                {subtotal.nominal > 0 && <div>{formatRupiah(subtotal.nominal)}</div>}
-                {subtotal.paket === 0 && subtotal.nominal === 0 && '-'}
+                {subtotal.inliteBaris > 0 && <div>{subtotal.inliteBaris} baris (INLITE)</div>}
+                {subtotal.paket === 0 && subtotal.inliteBaris === 0 && '-'}
               </span>
             </div>
           )}
