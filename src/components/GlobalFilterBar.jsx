@@ -16,10 +16,10 @@ function Select({ value, onChange, options, placeholder, formatLabel }) {
   )
 }
 
-export const EMPTY_GLOBAL_FILTERS = { program: '', supp: '', depo: '', kota: '', sales: '', bulan: '', status: '', pengajuanPaket: '' }
+export const EMPTY_GLOBAL_FILTERS = { program: '', supp: '', depo: '', sales: '', bulan: '', status: '', pengajuanPaket: '' }
 
 // Urutan filter: Depo, Sales, Bulan, Supplier, Program, Status (sesuai
-// permintaan), lalu Kota di paling akhir sebagai filter tambahan.
+// permintaan).
 //
 // Di HP baris filter ini digeser horizontal (overflow-x-auto + no-wrap)
 // alih-alih ditumpuk ke bawah, supaya tidak makan banyak layar sebelum
@@ -52,7 +52,6 @@ export default function GlobalFilterBar({ filters, setFilters, options }) {
         options={['Tercapai', 'Belum Tercapai']}
         placeholder="Semua Status"
       />
-      <Select value={filters.kota} onChange={update('kota')} options={options.kota} placeholder="Semua Kota" />
       {activeCount > 0 && (
         <button
           onClick={() => setFilters(() => ({ ...EMPTY_GLOBAL_FILTERS }))}

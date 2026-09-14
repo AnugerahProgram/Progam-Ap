@@ -1,13 +1,56 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
-import { ChevronRight, FileSpreadsheet, ImageDown, Loader2, CheckCircle2, CircleDashed, Package } from 'lucide-react'
+import {
+  ChevronRight,
+  FileSpreadsheet,
+  ImageDown,
+  Loader2,
+  CheckCircle2,
+  CircleDashed,
+  Package,
+  Columns3,
+} from 'lucide-react'
 import StatusBadge from './StatusBadge'
 import DetailModal from './DetailModal'
+import MultiSelect from './MultiSelect'
 import { formatRupiah, formatNumber } from '../lib/format'
 import { formatPengajuanPaket, pengajuanPaketLabel } from '../lib/pengajuanPaket'
 import { downloadExcel, downloadElementAsImage } from '../lib/exportUtils'
 import { CASH_REWARD_PROGRAMS } from '../lib/compute'
 
 const PAGE_SIZE = 20
+
+// Kolom-kolom tabel desktop yang bisa dipilih tampil/sembunyi lewat
+// tombol "Kolom". Urutannya dipakai juga buat colSpan baris subtotal.
+const COLUMNS = [
+  { id: 'kodeToko', label: 'Kode Toko' },
+  { id: 'namaPelanggan', label: 'Nama Pelanggan' },
+  { id: 'depoKota', label: 'Depo / Kota' },
+  { id: 'sales', label: 'Sales' },
+  { id: 'supp', label: 'Supp' },
+  { id: 'program', label: 'Program' },
+  { id: 'omset', label: 'Omset' },
+  { id: 'realisasi', label: 'Realisasi' },
+  { id: 'pengajuanPaket', label: 'Pengajuan Paket' },
+  { id: 'formFisik', label: 'Form Fisik' },
+  { id: 'status', label: 'Status' },
+]
+const ALL_COLUMN_IDS = COLUMNS.map((c) => c.id)
+
+// Kolom id -> label kolom di export Excel (satu kolom tabel bisa map ke
+// lebih dari satu kolom Excel, mis. "Depo / Kota" -> Depo + Kota).
+const EXPORT_COLUMN_MAP = {
+  kodeToko: ['Kode Toko'],
+  namaPelanggan: ['Nama Pelanggan'],
+  depoKota: ['Depo', 'Kota'],
+  sales: ['Sales'],
+  supp: ['Supplier'],
+  program: ['Program'],
+  omset: ['Omset'],
+  realisasi: ['Varian Dibeli'],
+  pengajuanPaket: ['Pengajuan Paket'],
+  formFisik: ['Form Fisik'],
+  status: ['Status'],
+}
 
 const EXPORT_COLUMNS = [
   { label: 'Kode Toko', key: 'kodeToko', width: 16 },
@@ -36,34 +79,110 @@ function FormFisikDot({ formFisik }) {
   )
 }
 
+// Dropdown checklist buat pilih kolom mana saja yang tampil di tabel
+// desktop. Klik di luar otomatis menutup.
+function ColumnPicker({ visible, onChange }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef(null)
+
+  useEffect(() => {
+    function onDocClick(e) {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false)
+    }
+    document.addEventListener('mousedown', onDocClick)
+    return () => document.removeEventListener('mousedown', onDocClick)
+  }, [])
+
+  const toggle = (id) => {
+    if (visible.includes(id)) onChange(visible.filter((v) => v !== id))
+    else onChange([...visible, id])
+  }
+
+  return (
+    <div ref={ref} className="relative shrink-0">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-sand-200 bg-white text-ink-800 text-[13px] font-medium hover:bg-sand-100"
+      >
+        <Columns3 size={14} />
+        Kolom
+        {visible.length < COLUMNS.length && (
+          <span className="text-ink-700/50">({visible.length}/{COLUMNS.length})</span>
+        )}
+      </button>
+      {open && (
+        <div className="absolute right-0 z-40 mt-1 w-56 bg-white border border-sand-200 rounded-xl shadow-lg py-1 max-h-80 overflow-y-auto">
+          <div className="flex items-center justify-between px-3 py-1.5 text-[11.5px] text-ink-700/50 uppercase tracking-wide border-b border-sand-100 mb-1">
+            Tampilkan kolom
+            <button
+              onClick={() => onChange(visible.length === COLUMNS.length ? [] : [...ALL_COLUMN_IDS])}
+              className="text-ink-700/70 hover:text-ink-900 normal-case tracking-normal font-medium"
+            >
+              {visible.length === COLUMNS.length ? 'Kosongkan' : 'Pilih semua'}
+            </button>
+          </div>
+          {COLUMNS.map((c) => (
+            <label key={c.id} className="flex items-center gap-2 px-3 py-1.5 text-[13px] hover:bg-sand-50 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={visible.includes(c.id)}
+                onChange={() => toggle(c.id)}
+                className="rounded border-sand-300"
+              />
+              {c.label}
+            </label>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 // RecapTable receives an already globally-filtered recap (Program, Supplier,
-// Depo, Kota, Sales, Status filters live one level up in App.jsx so the KPI
+// Depo, Sales, Status filters live one level up in App.jsx so the KPI
 // cards & charts react to them too). This component adds its own local
-// Kode Toko / Nama Pelanggan filters on top of that.
+// Kode Toko / Nama Pelanggan filters (Nama Pelanggan bisa multi-pilih) dan
+// pemilih kolom tabel di atas itu.
 //
 // Kolom "Pengajuan Paket" & "Form Fisik" dulunya halaman terpisah
 // (PengajuanPaketTable). Sekarang digabung ke sini supaya semua info
 // tentang satu toko+program ada di satu tempat.
 export default function RecapTable({ recap }) {
   const [kodeToko, setKodeToko] = useState('')
-  const [namaPelanggan, setNamaPelanggan] = useState('')
+  const [namaPelangganSel, setNamaPelangganSel] = useState([])
+  const [visibleCols, setVisibleCols] = useState(ALL_COLUMN_IDS)
   const [selected, setSelected] = useState(null)
   const [page, setPage] = useState(1)
   const [exporting, setExporting] = useState(null) // 'excel' | 'image' | null
   const tableRef = useRef(null)
 
+  const namaPelangganOptions = useMemo(
+    () => Array.from(new Set(recap.map((r) => r.namaPelanggan).filter(Boolean))).sort(),
+    [recap]
+  )
+
   const filtered = useMemo(() => {
     const qKode = kodeToko.trim().toLowerCase()
-    const qNama = namaPelanggan.trim().toLowerCase()
     return recap.filter((r) => {
       if (qKode && !`${r.kodeToko || ''}`.toLowerCase().includes(qKode)) return false
-      if (qNama && !`${r.namaPelanggan || ''}`.toLowerCase().includes(qNama)) return false
+      if (namaPelangganSel.length > 0 && !namaPelangganSel.includes(r.namaPelanggan)) return false
       return true
     })
-  }, [recap, kodeToko, namaPelanggan])
+  }, [recap, kodeToko, namaPelangganSel])
 
   // Reset to page 1 whenever the upstream (global) filter or local filters change.
-  useEffect(() => { setPage(1) }, [recap, kodeToko, namaPelanggan])
+  useEffect(() => { setPage(1) }, [recap, kodeToko, namaPelangganSel])
+
+  // Buang pilihan nama pelanggan yang jadi tidak valid kalau filter global
+  // di atasnya berubah (mis. ganti Depo bikin toko yang tadi dipilih hilang
+  // dari daftar).
+  useEffect(() => {
+    setNamaPelangganSel((sel) => {
+      const next = sel.filter((n) => namaPelangganOptions.includes(n))
+      return next.length === sel.length ? sel : next
+    })
+  }, [namaPelangganOptions])
 
   // Subtotal "Pengajuan Paket" dari SELURUH baris yang lolos filter (bukan
   // cuma yang tampil di halaman ini). Program reward uang (BELANJA CERIA,
@@ -85,10 +204,26 @@ export default function RecapTable({ recap }) {
   const page_ = Math.min(page, pageCount)
   const pageRows = filtered.slice((page_ - 1) * PAGE_SIZE, page_ * PAGE_SIZE)
 
+  // Urutan kolom yang sedang tampil, dipakai buat hitung colSpan baris
+  // subtotal supaya selnya selalu jatuh di posisi kolom "Pengajuan Paket".
+  const visibleOrdered = COLUMNS.filter((c) => visibleCols.includes(c.id))
+  const paketColIdx = visibleOrdered.findIndex((c) => c.id === 'pengajuanPaket')
+  const totalCols = visibleOrdered.length + 1 // +1 kolom chevron di ujung kanan
+
+  const subtotalContent = (
+    <>
+      {subtotal.paket > 0 && <div>{formatNumber(subtotal.paket)} paket</div>}
+      {subtotal.inliteBaris > 0 && <div>{subtotal.inliteBaris} baris (INLITE)</div>}
+      {subtotal.paket === 0 && subtotal.inliteBaris === 0 && '-'}
+    </>
+  )
+
   const handleDownloadExcel = async () => {
     setExporting('excel')
     try {
-      await downloadExcel('rekap-program-pelanggan', 'Rekap Program', filtered, EXPORT_COLUMNS)
+      const activeLabels = new Set(visibleCols.flatMap((id) => EXPORT_COLUMN_MAP[id] || []))
+      const cols = EXPORT_COLUMNS.filter((c) => activeLabels.has(c.label))
+      await downloadExcel('rekap-program-pelanggan', 'Rekap Program', filtered, cols.length ? cols : EXPORT_COLUMNS)
     } finally {
       setExporting(null)
     }
@@ -112,12 +247,13 @@ export default function RecapTable({ recap }) {
           placeholder="Filter Kode Toko..."
           className="bg-sand-50 border border-sand-200 rounded-lg px-3 py-2 text-[13.5px] focus:outline-none focus:ring-2 focus:ring-ink-800/20 min-w-[140px] flex-1 sm:flex-none sm:min-w-[160px]"
         />
-        <input
-          value={namaPelanggan}
-          onChange={(e) => setNamaPelanggan(e.target.value)}
-          placeholder="Filter Nama Pelanggan..."
-          className="bg-sand-50 border border-sand-200 rounded-lg px-3 py-2 text-[13.5px] focus:outline-none focus:ring-2 focus:ring-ink-800/20 min-w-[140px] flex-1"
+        <MultiSelect
+          options={namaPelangganOptions}
+          selected={namaPelangganSel}
+          onChange={setNamaPelangganSel}
+          placeholder="Semua Nama Pelanggan"
         />
+        <ColumnPicker visible={visibleCols} onChange={setVisibleCols} />
         <div className="flex gap-2 w-full sm:w-auto sm:ml-auto">
           <button
             onClick={handleDownloadExcel}
@@ -144,17 +280,17 @@ export default function RecapTable({ recap }) {
           <table className="w-full text-[13px]">
             <thead className="bg-sand-100 text-ink-700/70 text-[12px] uppercase tracking-wide">
               <tr>
-                <th className="text-left px-4 py-3 font-medium">Kode Toko</th>
-                <th className="text-left px-4 py-3 font-medium">Nama Pelanggan</th>
-                <th className="text-left px-4 py-3 font-medium">Depo / Kota</th>
-                <th className="text-left px-4 py-3 font-medium">Sales</th>
-                <th className="text-left px-4 py-3 font-medium">Supp</th>
-                <th className="text-left px-4 py-3 font-medium">Program</th>
-                <th className="text-right px-4 py-3 font-medium">Omset</th>
-                <th className="text-left px-4 py-3 font-medium">Realisasi</th>
-                <th className="text-center px-4 py-3 font-medium">Pengajuan Paket</th>
-                <th className="text-left px-4 py-3 font-medium">Form Fisik</th>
-                <th className="text-left px-4 py-3 font-medium">Status</th>
+                {visibleCols.includes('kodeToko') && <th className="text-left px-4 py-3 font-medium">Kode Toko</th>}
+                {visibleCols.includes('namaPelanggan') && <th className="text-left px-4 py-3 font-medium">Nama Pelanggan</th>}
+                {visibleCols.includes('depoKota') && <th className="text-left px-4 py-3 font-medium">Depo / Kota</th>}
+                {visibleCols.includes('sales') && <th className="text-left px-4 py-3 font-medium">Sales</th>}
+                {visibleCols.includes('supp') && <th className="text-left px-4 py-3 font-medium">Supp</th>}
+                {visibleCols.includes('program') && <th className="text-left px-4 py-3 font-medium">Program</th>}
+                {visibleCols.includes('omset') && <th className="text-right px-4 py-3 font-medium">Omset</th>}
+                {visibleCols.includes('realisasi') && <th className="text-left px-4 py-3 font-medium">Realisasi</th>}
+                {visibleCols.includes('pengajuanPaket') && <th className="text-center px-4 py-3 font-medium">Pengajuan Paket</th>}
+                {visibleCols.includes('formFisik') && <th className="text-left px-4 py-3 font-medium">Form Fisik</th>}
+                {visibleCols.includes('status') && <th className="text-left px-4 py-3 font-medium">Status</th>}
                 <th className="px-4 py-3"></th>
               </tr>
             </thead>
@@ -165,32 +301,57 @@ export default function RecapTable({ recap }) {
                   onClick={() => setSelected(r)}
                   className="border-t border-sand-200 hover:bg-sand-50 cursor-pointer transition-colors"
                 >
-                  <td className="px-4 py-3 font-mono text-[12px]">{r.kodeToko}</td>
-                  <td className="px-4 py-3 font-medium text-ink-900 max-w-[220px] truncate">{r.namaPelanggan}</td>
-                  <td className="px-4 py-3 text-ink-700/70">{r.depo}<div className="text-[11.5px] text-ink-700/50">{r.kota}</div></td>
-                  <td className="px-4 py-3 text-ink-700/70">{r.salesFaktur}</td>
-                  <td className="px-4 py-3">
-                    <span className="px-2 py-0.5 rounded-md bg-ink-900/5 text-ink-800 text-[12px] font-medium">{r.supp}</span>
-                  </td>
-                  <td className="px-4 py-3 text-ink-700">{r.program}</td>
-                  <td className="px-4 py-3 text-right font-medium whitespace-nowrap">{formatRupiah(r.omset)}</td>
-                  <td className="px-4 py-3 whitespace-nowrap">
-                    {r.varianCount}/{r.totalVarianProgram} varian
-                    {r.itemWajibTotal.length > 0 && (
-                      <div className={`text-[11.5px] ${r.wajibHave >= r.wajibNeeded ? 'text-pine-600' : 'text-clay-600'}`}>
-                        wajib {r.wajibHave}/{r.wajibNeeded} pcs
-                      </div>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-center font-semibold text-ink-900 whitespace-nowrap">{formatPengajuanPaket(r)}</td>
-                  <td className="px-4 py-3"><FormFisikDot formFisik={r.formFisik} /></td>
-                  <td className="px-4 py-3"><StatusBadge tercapai={r.tercapai} /></td>
+                  {visibleCols.includes('kodeToko') && (
+                    <td className="px-4 py-3 font-mono text-[12px]">{r.kodeToko}</td>
+                  )}
+                  {visibleCols.includes('namaPelanggan') && (
+                    <td className="px-4 py-3 font-medium text-ink-900 max-w-[220px] truncate">{r.namaPelanggan}</td>
+                  )}
+                  {visibleCols.includes('depoKota') && (
+                    <td className="px-4 py-3 text-ink-700/70">
+                      {r.depo}
+                      <div className="text-[11.5px] text-ink-700/50">{r.kota}</div>
+                    </td>
+                  )}
+                  {visibleCols.includes('sales') && (
+                    <td className="px-4 py-3 text-ink-700/70">{r.salesFaktur}</td>
+                  )}
+                  {visibleCols.includes('supp') && (
+                    <td className="px-4 py-3">
+                      <span className="px-2 py-0.5 rounded-md bg-ink-900/5 text-ink-800 text-[12px] font-medium">{r.supp}</span>
+                    </td>
+                  )}
+                  {visibleCols.includes('program') && (
+                    <td className="px-4 py-3 text-ink-700">{r.program}</td>
+                  )}
+                  {visibleCols.includes('omset') && (
+                    <td className="px-4 py-3 text-right font-medium whitespace-nowrap">{formatRupiah(r.omset)}</td>
+                  )}
+                  {visibleCols.includes('realisasi') && (
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      {r.varianCount}/{r.totalVarianProgram} varian
+                      {r.itemWajibTotal.length > 0 && (
+                        <div className={`text-[11.5px] ${r.wajibHave >= r.wajibNeeded ? 'text-pine-600' : 'text-clay-600'}`}>
+                          wajib {r.wajibHave}/{r.wajibNeeded} pcs
+                        </div>
+                      )}
+                    </td>
+                  )}
+                  {visibleCols.includes('pengajuanPaket') && (
+                    <td className="px-4 py-3 text-center font-semibold text-ink-900 whitespace-nowrap">{formatPengajuanPaket(r)}</td>
+                  )}
+                  {visibleCols.includes('formFisik') && (
+                    <td className="px-4 py-3"><FormFisikDot formFisik={r.formFisik} /></td>
+                  )}
+                  {visibleCols.includes('status') && (
+                    <td className="px-4 py-3"><StatusBadge tercapai={r.tercapai} /></td>
+                  )}
                   <td className="px-4 py-3 text-ink-700/40"><ChevronRight size={16} /></td>
                 </tr>
               ))}
               {pageRows.length === 0 && (
                 <tr>
-                  <td colSpan={12} className="px-4 py-10 text-center text-ink-700/50">
+                  <td colSpan={totalCols} className="px-4 py-10 text-center text-ink-700/50">
                     Tidak ada data yang cocok dengan filter saat ini.
                   </td>
                 </tr>
@@ -199,15 +360,31 @@ export default function RecapTable({ recap }) {
             {filtered.length > 0 && (
               <tfoot>
                 <tr className="border-t-2 border-sand-300 bg-sand-50/80 font-semibold text-ink-900">
-                  <td colSpan={8} className="px-4 py-2.5 text-right text-[12.5px] uppercase tracking-wide text-ink-700/60">
-                    Subtotal Pengajuan Paket ({filtered.length} baris)
-                  </td>
-                  <td className="px-4 py-2.5 text-center whitespace-nowrap">
-                    {subtotal.paket > 0 && <div>{formatNumber(subtotal.paket)} paket</div>}
-                    {subtotal.inliteBaris > 0 && <div>{subtotal.inliteBaris} baris (INLITE)</div>}
-                    {subtotal.paket === 0 && subtotal.inliteBaris === 0 && '-'}
-                  </td>
-                  <td colSpan={3}></td>
+                  {paketColIdx === -1 ? (
+                    <td colSpan={totalCols} className="px-4 py-2.5 text-right text-[12.5px]">
+                      <span className="uppercase tracking-wide text-ink-700/60 mr-2">
+                        Subtotal Pengajuan Paket ({filtered.length} baris)
+                      </span>
+                      {subtotalContent}
+                    </td>
+                  ) : (
+                    <>
+                      {paketColIdx > 0 && (
+                        <td colSpan={paketColIdx} className="px-4 py-2.5 text-right text-[12.5px] uppercase tracking-wide text-ink-700/60">
+                          Subtotal Pengajuan Paket ({filtered.length} baris)
+                        </td>
+                      )}
+                      <td className="px-4 py-2.5 text-center whitespace-nowrap">
+                        {paketColIdx === 0 && (
+                          <div className="text-[11px] uppercase tracking-wide text-ink-700/60 mb-0.5">
+                            Subtotal ({filtered.length} baris)
+                          </div>
+                        )}
+                        {subtotalContent}
+                      </td>
+                      {totalCols - paketColIdx - 1 > 0 && <td colSpan={totalCols - paketColIdx - 1}></td>}
+                    </>
+                  )}
                 </tr>
               </tfoot>
             )}
@@ -270,11 +447,7 @@ export default function RecapTable({ recap }) {
           {filtered.length > 0 && (
             <div className="px-4 py-3 bg-sand-50/80 border-t border-sand-200 flex items-center justify-between text-[12.5px]">
               <span className="text-ink-700/60 uppercase tracking-wide">Subtotal Pengajuan Paket</span>
-              <span className="font-semibold text-ink-900 text-right">
-                {subtotal.paket > 0 && <div>{formatNumber(subtotal.paket)} paket</div>}
-                {subtotal.inliteBaris > 0 && <div>{subtotal.inliteBaris} baris (INLITE)</div>}
-                {subtotal.paket === 0 && subtotal.inliteBaris === 0 && '-'}
-              </span>
+              <span className="font-semibold text-ink-900 text-right">{subtotalContent}</span>
             </div>
           )}
         </div>

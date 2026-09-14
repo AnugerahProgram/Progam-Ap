@@ -8,6 +8,7 @@ import ProgramCharts from './components/ProgramCharts'
 import RecapTable from './components/RecapTable'
 import MasterView from './components/MasterView'
 import GlobalFilterBar, { EMPTY_GLOBAL_FILTERS } from './components/GlobalFilterBar'
+import ScrollToggle from './components/ScrollToggle'
 import { useData } from './context/DataContext'
 import { applyGlobalFilters, getFilterOptions } from './lib/compute'
 
@@ -33,7 +34,7 @@ export default function App() {
     setFilters((f) => {
       const next = { ...f }
       let changed = false
-      for (const field of ['program', 'supp', 'depo', 'kota', 'sales', 'bulan', 'pengajuanPaket']) {
+      for (const field of ['program', 'supp', 'depo', 'sales', 'bulan', 'pengajuanPaket']) {
         if (next[field] && !filterOptions[field].includes(next[field])) {
           next[field] = ''
           changed = true
@@ -101,6 +102,7 @@ export default function App() {
         </main>
       </div>
       <MobileNav active={active} onChange={setActive} />
+      <ScrollToggle />
     </div>
   )
 }

@@ -49,9 +49,6 @@ export default function Sidebar({ active, onChange, hidden, onHide }) {
           )
         })}
       </nav>
-      <div className="mt-auto px-2 pt-6 text-[12px] leading-relaxed" style={{ color: '#5E7581' }}>
-        Mode lokal: data dibaca langsung dari 3 file Excel di <code>public/data/</code>. Timpa filenya lalu refresh halaman. Untuk pakai Supabase, set <code>VITE_DATA_SOURCE=supabase</code> di <code>.env</code>.
-      </div>
     </aside>
   )
 }
