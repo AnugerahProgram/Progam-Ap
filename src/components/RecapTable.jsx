@@ -2,9 +2,10 @@ import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { ChevronRight, FileSpreadsheet, ImageDown, Loader2, CheckCircle2, CircleDashed, Package } from 'lucide-react'
 import StatusBadge from './StatusBadge'
 import DetailModal from './DetailModal'
-import { formatRupiah } from '../lib/format'
+import { formatRupiah, formatNumber } from '../lib/format'
 import { formatPengajuanPaket, pengajuanPaketLabel } from '../lib/pengajuanPaket'
 import { downloadExcel, downloadElementAsImage } from '../lib/exportUtils'
+import { CASH_REWARD_PROGRAMS } from '../lib/compute'
 
 const PAGE_SIZE = 20
 
@@ -63,6 +64,21 @@ export default function RecapTable({ recap }) {
 
   // Reset to page 1 whenever the upstream (global) filter or local filters change.
   useEffect(() => { setPage(1) }, [recap, kodeToko, namaPelanggan])
+
+  // Subtotal "Pengajuan Paket" dari SELURUH baris yang lolos filter (bukan
+  // cuma yang tampil di halaman ini). Dipisah dua: program barang fisik
+  // (jumlah paket) vs program reward uang (nominal Rp), karena satuannya
+  // beda dan tidak boleh dijumlah jadi satu angka.
+  const subtotal = useMemo(() => {
+    let paket = 0
+    let nominal = 0
+    for (const r of filtered) {
+      const val = r.pengajuanPaket ?? 1
+      if (CASH_REWARD_PROGRAMS.includes(r.program)) nominal += val
+      else paket += val
+    }
+    return { paket, nominal }
+  }, [filtered])
 
   const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
   const page_ = Math.min(page, pageCount)
@@ -179,6 +195,21 @@ export default function RecapTable({ recap }) {
                 </tr>
               )}
             </tbody>
+            {filtered.length > 0 && (
+              <tfoot>
+                <tr className="border-t-2 border-sand-300 bg-sand-50/80 font-semibold text-ink-900">
+                  <td colSpan={8} className="px-4 py-2.5 text-right text-[12.5px] uppercase tracking-wide text-ink-700/60">
+                    Subtotal Pengajuan Paket ({filtered.length} baris)
+                  </td>
+                  <td className="px-4 py-2.5 text-center whitespace-nowrap">
+                    {subtotal.paket > 0 && <div>{formatNumber(subtotal.paket)} paket</div>}
+                    {subtotal.nominal > 0 && <div>{formatRupiah(subtotal.nominal)}</div>}
+                    {subtotal.paket === 0 && subtotal.nominal === 0 && '-'}
+                  </td>
+                  <td colSpan={3}></td>
+                </tr>
+              </tfoot>
+            )}
           </table>
         </div>
 
@@ -233,6 +264,16 @@ export default function RecapTable({ recap }) {
           {pageRows.length === 0 && (
             <div className="px-4 py-10 text-center text-ink-700/50 text-[13px]">
               Tidak ada data yang cocok dengan filter saat ini.
+            </div>
+          )}
+          {filtered.length > 0 && (
+            <div className="px-4 py-3 bg-sand-50/80 border-t border-sand-200 flex items-center justify-between text-[12.5px]">
+              <span className="text-ink-700/60 uppercase tracking-wide">Subtotal Pengajuan Paket</span>
+              <span className="font-semibold text-ink-900 text-right">
+                {subtotal.paket > 0 && <div>{formatNumber(subtotal.paket)} paket</div>}
+                {subtotal.nominal > 0 && <div>{formatRupiah(subtotal.nominal)}</div>}
+                {subtotal.paket === 0 && subtotal.nominal === 0 && '-'}
+              </span>
             </div>
           )}
         </div>

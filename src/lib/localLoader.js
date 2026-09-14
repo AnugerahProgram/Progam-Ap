@@ -3,7 +3,7 @@
 // default). Bentuk data yang dikembalikan SAMA PERSIS dengan supabaseLoader.js
 // supaya DataContext & compute.js tidak perlu tahu bedanya.
 import * as XLSX from 'xlsx'
-import { toISODate } from './format'
+import { toISODate, normPersonName } from './format'
 
 const FILES = {
   rekapan: '/data/INPUT_REKAPAN_PROGRAM.xlsx',
@@ -75,7 +75,7 @@ function parseSalesWorkbook(wb) {
       namaPelanggan: get(row, idx, 'NAMA PELANGGAN'),
       alamatPelanggan: get(row, idx, 'ALAMAT PELANGGAN'),
       depo: get(row, idx, 'DEPO'),
-      salesFaktur: get(row, idx, 'SALES FAKTUR', ['SALESMAN']),
+      salesFaktur: normPersonName(get(row, idx, 'SALES FAKTUR', ['SALESMAN'])),
       kodeBarang: get(row, idx, 'KODE BARANG'),
       namaBarang: (get(row, idx, 'NAMA BARANG') || '').toString().trim(),
       qty: Number(get(row, idx, 'F. QTY', ['QTY'])) || 0,
@@ -150,7 +150,7 @@ function parseRekapanWorkbook(wb) {
         alamatPelanggan: get(row, idx, 'ALAMAT PELANGGAN', ['ALAMAT TOKO']),
         depo: get(row, idx, 'DEPO'),
         kotaArea: get(row, idx, 'KOTA/AREA', ['KOTA', 'AREA']),
-        salesman: get(row, idx, 'SALESMAN'),
+        salesman: normPersonName(get(row, idx, 'SALESMAN')),
         program: String(program).trim(),
         pengajuanPaket: num(get(row, idx, 'PENGAJUAN PAKET', ['PAKET PENGAJUAN'])),
         // FORM FISIK: 0 = belum sampai ke kantor, 1 = sudah sampai.

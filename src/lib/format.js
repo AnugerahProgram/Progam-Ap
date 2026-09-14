@@ -33,6 +33,22 @@ export function formatDateRange(awal, akhir) {
   return `${formatDate(awal)} – ${formatDate(akhir)}`
 }
 
+// Menyamakan penulisan nama orang (SALES FAKTUR / SALESMAN) yang di Excel
+// sering diketik dengan kapitalisasi berbeda-beda (mis. "ZHULVAN" di satu
+// baris, "Zhulvan" di baris lain). Tanpa ini keduanya dianggap 2 sales
+// berbeda oleh filter dropdown (Set/groupBy itu case-sensitive). Hasilnya
+// selalu Title Case ("Zhulvan", "Kasmuri", "Indah Widarsih") supaya rapi
+// dan konsisten dilihat di mana pun (dropdown, tabel, export).
+export function normPersonName(v) {
+  const s = (v ?? '').toString().trim().replace(/\s+/g, ' ')
+  if (!s) return s
+  return s
+    .toLowerCase()
+    .split(' ')
+    .map((w) => (w ? w[0].toUpperCase() + w.slice(1) : w))
+    .join(' ')
+}
+
 export function toISODate(v) {
   if (!v) return null
   if (v instanceof Date) return v.toISOString().slice(0, 10)

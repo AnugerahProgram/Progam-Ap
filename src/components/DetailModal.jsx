@@ -119,6 +119,9 @@ export default function DetailModal({ row, onClose }) {
           <div>
             <div className="text-[12.5px] uppercase tracking-wide text-brass-600 font-semibold mb-1">{row.supp} · {row.program}</div>
             <h2 className="text-lg font-bold text-ink-900">{row.namaPelanggan}</h2>
+            {row.alamatPelanggan && (
+              <div className="text-[12.5px] text-ink-700/60 mt-0.5 max-w-md">{row.alamatPelanggan}</div>
+            )}
             <div className="text-[13px] text-ink-700/70 flex flex-wrap gap-x-4 gap-y-1 mt-1.5">
               <span className="flex items-center gap-1"><Store size={13} /> {row.kodeToko}</span>
               <span className="flex items-center gap-1"><MapPin size={13} /> {row.kota}</span>

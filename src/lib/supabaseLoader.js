@@ -1,4 +1,5 @@
 import { supabase } from './supabaseClient'
+import { normPersonName } from './format'
 
 // Supabase membatasi tiap request ke maksimum ~1000 baris, jadi tabel besar
 // (data_penjualan bisa ribuan baris) harus diambil per-halaman.
@@ -25,7 +26,7 @@ function normalizeSales(rows) {
     namaPelanggan: r.nama_pelanggan,
     alamatPelanggan: r.alamat_pelanggan,
     depo: r.depo,
-    salesFaktur: r.sales_faktur || r.salesman,
+    salesFaktur: normPersonName(r.sales_faktur || r.salesman),
     kodeBarang: r.kode_barang,
     namaBarang: (r.nama_barang || '').toString().trim(),
     qty: Number(r.f_qty ?? r.qty) || 0,
@@ -85,7 +86,7 @@ function normalizeRekapanProgram(rows) {
     alamatPelanggan: r.alamat_pelanggan,
     depo: r.depo,
     kotaArea: r.kota_area,
-    salesman: r.salesman,
+    salesman: normPersonName(r.salesman),
     program: r.program,
     pengajuanPaket: Number(r.pengajuan_paket) || 0,
     // 0 di Excel -> false -> "Belum sampai ke kantor"

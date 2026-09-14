@@ -48,6 +48,7 @@ export default function Topbar({ active, sidebarHidden, onShowSidebar }) {
             {meta.source === 'supabase' && (
               <span className="text-ink-700/50">
                 · Sync terakhir: {lastSyncedAt ? formatDateTime(lastSyncedAt) : 'belum pernah (jalankan npm run import:supabase)'}
+                {' '}· Jika data belum berubah, silahkan refresh halaman.
               </span>
             )}
           </div>
