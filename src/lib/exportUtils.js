@@ -5,7 +5,15 @@
 // import the plain package name rather than a deep dist/ path (deep paths
 // can fail to resolve depending on the local npm/OS setup).
 const loadExcelJS = () => import('exceljs').then((m) => m.default || m)
-const loadHtml2Canvas = () => import('html2canvas').then((m) => m.default || m)
+// Pakai html2canvas-pro (fork), bukan html2canvas biasa — html2canvas versi
+// original gagal parse warna CSS modern yang dipakai Tailwind v3, yaitu
+// format `rgb(r g b / alpha)` (pakai spasi + slash), yang otomatis dipakai
+// Tailwind untuk SEMUA utility warna yang mendukung opacity modifier (text-,
+// bg-, border-, dst) — bukan cuma yang pakai /60, /10, dsb. Akibatnya waktu
+// screenshot diambil, warna jadi pudar/salah dan layout tabel ikut berantakan
+// karena ukuran box-nya salah dihitung. html2canvas-pro API-nya sama persis,
+// cuma menambah dukungan untuk format warna modern ini.
+const loadHtml2Canvas = () => import('html2canvas-pro').then((m) => m.default || m)
 
 const HEADER_FILL = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF234351' } }
 const HEADER_FONT = { color: { argb: 'FFFFFFFF' }, bold: true, size: 11 }
