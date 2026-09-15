@@ -24,6 +24,8 @@ const PAGE_SIZE = 20
 const COLUMNS = [
   { id: 'kodeToko', label: 'Kode Toko' },
   { id: 'namaPelanggan', label: 'Nama Pelanggan' },
+  { id: 'alamat', label: 'Alamat' },
+  { id: 'kota', label: 'Kota' },
   { id: 'depoKota', label: 'Depo / Kota' },
   { id: 'sales', label: 'Sales' },
   { id: 'supp', label: 'Supp' },
@@ -41,6 +43,8 @@ const ALL_COLUMN_IDS = COLUMNS.map((c) => c.id)
 const EXPORT_COLUMN_MAP = {
   kodeToko: ['Kode Toko'],
   namaPelanggan: ['Nama Pelanggan'],
+  alamat: ['Alamat'],
+  kota: ['Kota'],
   depoKota: ['Depo', 'Kota'],
   sales: ['Sales'],
   supp: ['Supplier'],
@@ -55,6 +59,7 @@ const EXPORT_COLUMN_MAP = {
 const EXPORT_COLUMNS = [
   { label: 'Kode Toko', key: 'kodeToko', width: 16 },
   { label: 'Nama Pelanggan', key: 'namaPelanggan', width: 30 },
+  { label: 'Alamat', key: 'alamatPelanggan', width: 30 },
   { label: 'Depo', key: 'depo', width: 14 },
   { label: 'Kota', key: 'kota', width: 14 },
   { label: 'Sales', key: 'salesFaktur', width: 16 },
@@ -282,6 +287,8 @@ export default function RecapTable({ recap }) {
               <tr>
                 {visibleCols.includes('kodeToko') && <th className="text-left px-4 py-3 font-medium">Kode Toko</th>}
                 {visibleCols.includes('namaPelanggan') && <th className="text-left px-4 py-3 font-medium">Nama Pelanggan</th>}
+                {visibleCols.includes('alamat') && <th className="text-left px-4 py-3 font-medium">Alamat</th>}
+                {visibleCols.includes('kota') && <th className="text-left px-4 py-3 font-medium">Kota</th>}
                 {visibleCols.includes('depoKota') && <th className="text-left px-4 py-3 font-medium">Depo / Kota</th>}
                 {visibleCols.includes('sales') && <th className="text-left px-4 py-3 font-medium">Sales</th>}
                 {visibleCols.includes('supp') && <th className="text-left px-4 py-3 font-medium">Supp</th>}
@@ -306,6 +313,12 @@ export default function RecapTable({ recap }) {
                   )}
                   {visibleCols.includes('namaPelanggan') && (
                     <td className="px-4 py-3 font-medium text-ink-900 max-w-[220px] truncate">{r.namaPelanggan}</td>
+                  )}
+                  {visibleCols.includes('alamat') && (
+                    <td className="px-4 py-3 text-ink-700/70 max-w-[220px] truncate">{r.alamatPelanggan || '-'}</td>
+                  )}
+                  {visibleCols.includes('kota') && (
+                    <td className="px-4 py-3 text-ink-700/70">{r.kota || '-'}</td>
                   )}
                   {visibleCols.includes('depoKota') && (
                     <td className="px-4 py-3 text-ink-700/70">
@@ -409,7 +422,10 @@ export default function RecapTable({ recap }) {
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
                   <div className="font-semibold text-ink-900 text-[14px] truncate">{r.namaPelanggan}</div>
-                  <div className="text-[12px] text-ink-700/60 font-mono">{r.kodeToko} · {r.depo}</div>
+                  {r.alamatPelanggan && (
+                    <div className="text-[12px] text-ink-700/60 truncate">{r.alamatPelanggan}</div>
+                  )}
+                  <div className="text-[12px] text-ink-700/60 font-mono">{r.kodeToko} · {r.depo}{r.kota ? ` · ${r.kota}` : ''}</div>
                 </div>
                 <StatusBadge tercapai={r.tercapai} />
               </div>
