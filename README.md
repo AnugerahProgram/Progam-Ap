@@ -100,7 +100,7 @@ Logika lengkap ada di `src/lib/compute.js` (`computeKekuranganPaket`) dan di vie
 
 | Program | Supplier | Syarat | Reward |
 |---|---|---|---|
-| SUPERFAN | DCOTA | Beli min. 2 dari item wajib **dan** omset item program melebihi target nominal dalam periode | — |
+| SUPERFAN | DCOTA | Beli min. **2 varian berbeda** dari 3 item wajib (DABS-C 201, DABS-C 204, DT CRES 1/2"), **dan** total qty item wajib ≥ 2 pcs × jumlah paket, **dan** omset item program melebihi target nominal dalam periode | — |
 | BUCKET SEAL | DCOTA | Beli semua item program | Diskon 10% |
 | KUNINGAN | DCOTA | Beli minimal 2 varian berbeda dari daftar item Kuningan | Diskon 5% |
 | PVCBV | DCOTA | Beli minimal 2 varian berbeda dari daftar item PVCBV | Diskon 7% |

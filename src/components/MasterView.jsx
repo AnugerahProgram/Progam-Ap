@@ -55,7 +55,7 @@ export default function MasterView() {
               <div className="mb-3">
                 <div className="text-[12px] text-ink-700/60 mb-1">
                   {p.program === 'SUPERFAN'
-                    ? 'Item wajib (min. 2 pcs per 1 paket, dikali jumlah paket)'
+                    ? 'Item wajib (min. 2 varian berbeda, DAN min. 2 pcs per 1 paket dikali jumlah paket)'
                     : 'Item wajib (pilih min. 2)'}
                 </div>
                 <div className="flex flex-wrap gap-1.5">

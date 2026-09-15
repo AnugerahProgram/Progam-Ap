@@ -197,7 +197,16 @@ export default function DetailModal({ row, onClose }) {
             <div className="font-semibold text-ink-900 text-[14px]">Cek varian item</div>
             {row.itemWajibTotal.length > 0 && (
               <div className="text-[12.5px] text-ink-700/60">
-                Item wajib: <b className={row.wajibHave >= row.wajibNeeded ? 'text-pine-600' : 'text-clay-600'}>{row.wajibHave}/{row.wajibNeeded} pcs</b>
+                Item wajib:{' '}
+                {row.wajibVarianNeeded != null && (
+                  <>
+                    <b className={row.wajibVarianHave >= row.wajibVarianNeeded ? 'text-pine-600' : 'text-clay-600'}>
+                      {row.wajibVarianHave}/{row.wajibVarianNeeded} varian
+                    </b>
+                    {' · '}
+                  </>
+                )}
+                <b className={row.wajibHave >= row.wajibNeeded ? 'text-pine-600' : 'text-clay-600'}>{row.wajibHave}/{row.wajibNeeded} pcs</b>
               </div>
             )}
           </div>

@@ -331,9 +331,16 @@ export default function RecapTable({ recap }) {
                     <td className="px-4 py-3 whitespace-nowrap">
                       {r.varianCount}/{r.totalVarianProgram} varian
                       {r.itemWajibTotal.length > 0 && (
-                        <div className={`text-[11.5px] ${r.wajibHave >= r.wajibNeeded ? 'text-pine-600' : 'text-clay-600'}`}>
-                          wajib {r.wajibHave}/{r.wajibNeeded} pcs
-                        </div>
+                        <>
+                          {r.wajibVarianNeeded != null && (
+                            <div className={`text-[11.5px] ${r.wajibVarianHave >= r.wajibVarianNeeded ? 'text-pine-600' : 'text-clay-600'}`}>
+                              wajib {r.wajibVarianHave}/{r.wajibVarianNeeded} varian
+                            </div>
+                          )}
+                          <div className={`text-[11.5px] ${r.wajibHave >= r.wajibNeeded ? 'text-pine-600' : 'text-clay-600'}`}>
+                            wajib {r.wajibHave}/{r.wajibNeeded} pcs
+                          </div>
+                        </>
                       )}
                     </td>
                   )}
@@ -422,8 +429,8 @@ export default function RecapTable({ recap }) {
                   <div className="font-semibold text-ink-900">
                     {r.varianCount}/{r.totalVarianProgram}
                     {r.itemWajibTotal.length > 0 && (
-                      <span className={`ml-1 font-normal ${r.wajibHave >= r.wajibNeeded ? 'text-pine-600' : 'text-clay-600'}`}>
-                        (wajib {r.wajibHave}/{r.wajibNeeded})
+                      <span className={`ml-1 font-normal ${r.wajibHave >= r.wajibNeeded && (r.wajibVarianNeeded == null || r.wajibVarianHave >= r.wajibVarianNeeded) ? 'text-pine-600' : 'text-clay-600'}`}>
+                        (wajib{r.wajibVarianNeeded != null ? ` ${r.wajibVarianHave}/${r.wajibVarianNeeded} varian,` : ''} {r.wajibHave}/{r.wajibNeeded} pcs)
                       </span>
                     )}
                   </div>
