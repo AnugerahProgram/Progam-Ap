@@ -203,6 +203,12 @@ function readRekapanProgram(filePath) {
         })(),
         awal_program: toISODate(get(row, idx, 'AWAL PROGRAM')),
         akhir_program: toISODate(get(row, idx, 'AKHIR PROGRAM')),
+        // NOTE: catatan bebas, mis. "SUDAH DIKIRIM" -> reward/paket sudah
+        // terkirim ke pelanggan (dipakai buat highlight hijau di dashboard).
+        note: (() => {
+          const v = get(row, idx, 'NOTE')
+          return v == null || v === '' ? null : String(v).trim()
+        })(),
       }
 
       // Tabel rekapan_program punya unique constraint di kombinasi
@@ -233,6 +239,7 @@ function readRekapanProgram(filePath) {
           && prev.form_fisik === entry.form_fisik
           && prev.target_nominal === entry.target_nominal
           && prev.akhir_program === entry.akhir_program
+          && prev.note === entry.note
         if (sameData) {
           exactDupes.push({ sheetName, kodeToko: entry.kode_toko, program: entry.program })
           continue
@@ -248,6 +255,9 @@ function readRekapanProgram(filePath) {
             ? null
             : (prev.target_nominal ?? 0) + (entry.target_nominal ?? 0),
           akhir_program: [prev.akhir_program, entry.akhir_program].filter(Boolean).sort().pop() ?? null,
+          // note -> pakai yang ada isinya; kalau dua-duanya ada isi, pakai
+          // yang paling baru (baris yang belakangan di Excel).
+          note: entry.note ?? prev.note ?? null,
         }
         continue
       }

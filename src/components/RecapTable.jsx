@@ -279,6 +279,11 @@ export default function RecapTable({ recap }) {
         </div>
       </div>
 
+      <div className="flex items-center gap-2 px-1 text-[12.5px] text-ink-700/70">
+        <span className="inline-block w-3.5 h-3.5 rounded-sm bg-pine-500/20 border border-pine-500/40 shrink-0" />
+        Baris berwarna <span className="font-semibold text-pine-600">hijau</span> berarti reward / paket program <span className="font-semibold">sudah terkirim</span> ke pelanggan (NOTE: SUDAH DIKIRIM).
+      </div>
+
       <div ref={tableRef} className="bg-white border border-sand-200 rounded-2xl overflow-hidden">
         {/* ---------- Tampilan tabel (md ke atas) ---------- */}
         <div className="hidden md:block overflow-x-auto">
@@ -306,7 +311,10 @@ export default function RecapTable({ recap }) {
                 <tr
                   key={`${r.kodeToko}-${r.supp}-${r.program}-${i}`}
                   onClick={() => setSelected(r)}
-                  className="border-t border-sand-200 hover:bg-sand-50 cursor-pointer transition-colors"
+                  title={r.sudahDikirim ? 'Reward sudah terkirim ke pelanggan' : undefined}
+                  className={`border-t border-sand-200 cursor-pointer transition-colors ${
+                    r.sudahDikirim ? 'bg-pine-500/10 hover:bg-pine-500/15' : 'hover:bg-sand-50'
+                  }`}
                 >
                   {visibleCols.includes('kodeToko') && (
                     <td className="px-4 py-3 font-mono text-[12px]">{r.kodeToko}</td>
@@ -417,7 +425,10 @@ export default function RecapTable({ recap }) {
             <button
               key={`${r.kodeToko}-${r.supp}-${r.program}-${i}`}
               onClick={() => setSelected(r)}
-              className="w-full text-left px-4 py-3.5 flex flex-col gap-2 active:bg-sand-50"
+              title={r.sudahDikirim ? 'Reward sudah terkirim ke pelanggan' : undefined}
+              className={`w-full text-left px-4 py-3.5 flex flex-col gap-2 active:bg-sand-50 ${
+                r.sudahDikirim ? 'bg-pine-500/10' : ''
+              }`}
             >
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">

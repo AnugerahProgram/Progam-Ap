@@ -161,6 +161,13 @@ function parseRekapanWorkbook(wb) {
         })(),
         awalProgram: toISODate(get(row, idx, 'AWAL PROGRAM')),
         akhirProgram: toISODate(get(row, idx, 'AKHIR PROGRAM')),
+        // NOTE: catatan bebas dari tim, mis. "SUDAH DIKIRIM" -> reward/paket
+        // sudah dikirim ke pelanggan. Ditampilkan sebagai highlight hijau
+        // di tabel "Rekap Program" (lihat isSudahDikirim di compute.js).
+        note: (() => {
+          const v = get(row, idx, 'NOTE')
+          return v == null ? '' : String(v).trim()
+        })(),
       })
     }
   }

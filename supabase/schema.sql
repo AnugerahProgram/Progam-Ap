@@ -54,6 +54,10 @@ create table if not exists rekapan_program (
   target_nominal    numeric,                     -- "TARGET NOMINAL" / "TARGET" (boleh null)
   awal_program      date,
   akhir_program     date,
+  note              text,                        -- "NOTE" -- catatan bebas, mis. "SUDAH DIKIRIM"
+                                                   -- = reward/paket sudah terkirim ke pelanggan.
+                                                   -- Baris dengan note = 'SUDAH DIKIRIM' (case
+                                                   -- insensitive) di-highlight hijau di dashboard.
   created_at        timestamptz not null default now(),
   updated_at        timestamptz not null default now(),
   unique (supp, kode_toko, program, awal_program)
@@ -147,6 +151,8 @@ select
   rp.target_nominal,
   rp.awal_program,
   rp.akhir_program,
+  rp.note,
+  (upper(trim(coalesce(rp.note, ''))) = 'SUDAH DIKIRIM') as sudah_dikirim,
   coalesce(r.qty_terkirim, 0)     as qty_terkirim,
   coalesce(r.nominal_terkirim, 0) as nominal_terkirim,
   greatest(rp.pengajuan_paket - coalesce(r.qty_terkirim, 0), 0) as kekurangan_qty,

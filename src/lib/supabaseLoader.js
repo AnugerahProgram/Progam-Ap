@@ -94,6 +94,9 @@ function normalizeRekapanProgram(rows) {
     targetNominal: r.target_nominal == null ? null : Number(r.target_nominal),
     awalProgram: r.awal_program,
     akhirProgram: r.akhir_program,
+    // NOTE: catatan bebas dari tim, mis. "SUDAH DIKIRIM" -> reward/paket
+    // sudah dikirim ke pelanggan (lihat isSudahDikirim di compute.js).
+    note: r.note == null ? '' : String(r.note).trim(),
   }))
 }
 

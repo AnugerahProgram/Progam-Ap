@@ -9,6 +9,14 @@
 // kekurangan OMSET terhadap target yang dipilih.
 export const CASH_REWARD_PROGRAMS = ['BELANJA CERIA', 'DISPLAY HOKI']
 
+// Nilai kolom NOTE (INPUT_REKAPAN_PROGRAM.xlsx) yang menandakan reward /
+// paket program SUDAH dikirim ke pelanggan. Dipakai buat highlight hijau
+// baris di tabel "Rekap Program". Dibandingkan case-insensitive & trim,
+// jadi "sudah dikirim", "Sudah Dikirim ", dst tetap kena.
+export function isSudahDikirim(note) {
+  return String(note || '').trim().toUpperCase() === 'SUDAH DIKIRIM'
+}
+
 // BELANJA CERIA: reward berjenjang sesuai omset akumulasi 1 Jul–30 Sep.
 // Toko "mengajukan" salah satu paket (dicatat di kolom TARGET NOMINAL),
 // dan harus mencapai omset >= nominal paket tsb untuk dapat reward-nya.
@@ -270,6 +278,7 @@ export function computeRecap(sales, masterBarang, rekapanProgram, opts = {}) {
       nominalRequired: conf.targetNominal,
       pengajuanPaket: conf.pengajuanPaket || 1,
       formFisik: !!conf.formFisik,
+      note: conf.note || '',
       omset: 0,
       items: new Map(), // namaBarang -> {qty, nominal, wajib}
       transactions: [],
@@ -364,6 +373,8 @@ export function computeRecap(sales, masterBarang, rekapanProgram, opts = {}) {
       nominalRequired: result.nominalRequiredEffective !== undefined ? result.nominalRequiredEffective : nominalRequired,
       pengajuanPaket: g.pengajuanPaket,
       formFisik: g.formFisik,
+      note: g.note,
+      sudahDikirim: isSudahDikirim(g.note),
       varianDibeli: boughtItemNames.map((n) => g.items.get(n).namaBarang),
       varianCount: boughtItemNames.length,
       totalVarianProgram: allItemNames.length,
