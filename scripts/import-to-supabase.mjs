@@ -80,17 +80,35 @@ function get(row, idx, name, fallbackNames = []) {
   return null
 }
 
+// Ambil tanggal kalender APA ADANYA, tanpa geser timezone.
+// SheetJS (cellDates: true) membangun Date dengan offset timezone historis,
+// jadi "1 Juli 2026" bisa keluar sebagai 2026-06-30T16:59:48Z (= 23:59:48
+// WIB, meleset ~12 detik sebelum tengah malam). Kalau langsung diambil
+// tanggalnya jadi 30 Juni. Maka: geser ke waktu lokal, bulatkan ke tengah
+// malam terdekat, baru ambil Y-M-D nya.
+function ymdRoundedLocal(d) {
+  const localMs = d.getTime() - d.getTimezoneOffset() * 60000
+  const r = new Date(Math.round(localMs / 86400000) * 86400000)
+  const y = r.getUTCFullYear()
+  const m = String(r.getUTCMonth() + 1).padStart(2, '0')
+  const day = String(r.getUTCDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
+
 function toISODate(v) {
   if (v == null || v === '') return null
-  if (v instanceof Date) return v.toISOString().slice(0, 10)
+  if (v instanceof Date) return ymdRoundedLocal(v)
   if (typeof v === 'number') {
     // Excel serial date
     const d = XLSX.SSF.parse_date_code(v)
     if (!d) return null
     return `${d.y}-${String(d.m).padStart(2, '0')}-${String(d.d).padStart(2, '0')}`
   }
-  const d = new Date(v)
-  return isNaN(d) ? null : d.toISOString().slice(0, 10)
+  const s = String(v).trim()
+  const m = s.match(/^(\d{4})-(\d{2})-(\d{2})/)
+  if (m) return `${m[1]}-${m[2]}-${m[3]}`
+  const d = new Date(s)
+  return isNaN(d) ? null : ymdRoundedLocal(d)
 }
 
 function num(v) {
