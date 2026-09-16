@@ -35,6 +35,7 @@ const COLUMNS = [
   { id: 'pengajuanPaket', label: 'Pengajuan Paket' },
   { id: 'formFisik', label: 'Form Fisik' },
   { id: 'status', label: 'Status' },
+  { id: 'note', label: 'Note' },
 ]
 const ALL_COLUMN_IDS = COLUMNS.map((c) => c.id)
 
@@ -54,6 +55,7 @@ const EXPORT_COLUMN_MAP = {
   pengajuanPaket: ['Pengajuan Paket'],
   formFisik: ['Form Fisik'],
   status: ['Status'],
+  note: ['Note'],
 }
 
 const EXPORT_COLUMNS = [
@@ -70,6 +72,7 @@ const EXPORT_COLUMNS = [
   { label: 'Pengajuan Paket', value: (r) => formatPengajuanPaket(r), width: 18, align: 'right' },
   { label: 'Form Fisik', value: (r) => (r.formFisik ? 'Sudah ada' : 'Belum ada'), width: 16, align: 'center' },
   { label: 'Status', value: (r) => (r.tercapai ? 'Tercapai' : 'Belum Tercapai'), width: 16, align: 'center' },
+  { label: 'Note', value: (r) => r.note || '', width: 20 },
 ]
 
 function FormFisikDot({ formFisik }) {
@@ -80,6 +83,20 @@ function FormFisikDot({ formFisik }) {
   ) : (
     <span className="inline-flex items-center gap-1 text-slate-500 text-[12px] font-medium">
       <CircleDashed size={13} /> Belum ada
+    </span>
+  )
+}
+
+function NoteBadge({ note, sudahDikirim }) {
+  if (!note) return <span className="text-ink-700/30 text-[12px]">-</span>
+  return (
+    <span
+      className={`inline-block px-2 py-0.5 rounded-md text-[12px] font-medium max-w-[200px] truncate align-middle ${
+        sudahDikirim ? 'bg-pine-500/15 text-pine-600' : 'bg-sand-100 text-ink-700'
+      }`}
+      title={note}
+    >
+      {note}
     </span>
   )
 }
@@ -156,6 +173,7 @@ function ColumnPicker({ visible, onChange }) {
 export default function RecapTable({ recap }) {
   const [kodeToko, setKodeToko] = useState('')
   const [namaPelangganSel, setNamaPelangganSel] = useState([])
+  const [noteFilter, setNoteFilter] = useState('') // '' = semua, '__NONE__' = tanpa catatan, else = nilai note persis
   const [visibleCols, setVisibleCols] = useState(ALL_COLUMN_IDS)
   const [selected, setSelected] = useState(null)
   const [page, setPage] = useState(1)
@@ -167,17 +185,34 @@ export default function RecapTable({ recap }) {
     [recap]
   )
 
+  // Nilai NOTE unik yang ada di data (mis. "SUDAH DIKIRIM", "BARU 1 PAKET"),
+  // dipakai buat isi dropdown filter Note.
+  const noteOptions = useMemo(() => {
+    const set = new Set()
+    for (const r of recap) {
+      const v = (r.note || '').trim()
+      if (v) set.add(v)
+    }
+    return Array.from(set).sort()
+  }, [recap])
+
   const filtered = useMemo(() => {
     const qKode = kodeToko.trim().toLowerCase()
     return recap.filter((r) => {
       if (qKode && !`${r.kodeToko || ''}`.toLowerCase().includes(qKode)) return false
       if (namaPelangganSel.length > 0 && !namaPelangganSel.includes(r.namaPelanggan)) return false
+      const noteVal = (r.note || '').trim()
+      if (noteFilter === '__NONE__') {
+        if (noteVal) return false
+      } else if (noteFilter && noteVal !== noteFilter) {
+        return false
+      }
       return true
     })
-  }, [recap, kodeToko, namaPelangganSel])
+  }, [recap, kodeToko, namaPelangganSel, noteFilter])
 
   // Reset to page 1 whenever the upstream (global) filter or local filters change.
-  useEffect(() => { setPage(1) }, [recap, kodeToko, namaPelangganSel])
+  useEffect(() => { setPage(1) }, [recap, kodeToko, namaPelangganSel, noteFilter])
 
   // Buang pilihan nama pelanggan yang jadi tidak valid kalau filter global
   // di atasnya berubah (mis. ganti Depo bikin toko yang tadi dipilih hilang
@@ -188,6 +223,12 @@ export default function RecapTable({ recap }) {
       return next.length === sel.length ? sel : next
     })
   }, [namaPelangganOptions])
+
+  // Sama halnya untuk filter Note: kalau nilai note yang dipilih sudah
+  // tidak ada lagi di data (mis. sehabis reload), balikin ke "Semua Note".
+  useEffect(() => {
+    setNoteFilter((v) => (v && v !== '__NONE__' && !noteOptions.includes(v) ? '' : v))
+  }, [noteOptions])
 
   // Subtotal "Pengajuan Paket" dari SELURUH baris yang lolos filter (bukan
   // cuma yang tampil di halaman ini). Program reward uang (BELANJA CERIA,
@@ -258,6 +299,17 @@ export default function RecapTable({ recap }) {
           onChange={setNamaPelangganSel}
           placeholder="Semua Nama Pelanggan"
         />
+        <select
+          value={noteFilter}
+          onChange={(e) => setNoteFilter(e.target.value)}
+          className="bg-sand-50 border border-sand-200 rounded-lg text-[13.5px] px-3 py-2 text-ink-900 focus:outline-none focus:ring-2 focus:ring-ink-800/20"
+        >
+          <option value="">Semua Note</option>
+          <option value="__NONE__">Tanpa catatan</option>
+          {noteOptions.map((n) => (
+            <option key={n} value={n}>{n}</option>
+          ))}
+        </select>
         <ColumnPicker visible={visibleCols} onChange={setVisibleCols} />
         <div className="flex gap-2 w-full sm:w-auto sm:ml-auto">
           <button
@@ -303,6 +355,7 @@ export default function RecapTable({ recap }) {
                 {visibleCols.includes('pengajuanPaket') && <th className="text-center px-4 py-3 font-medium">Pengajuan Paket</th>}
                 {visibleCols.includes('formFisik') && <th className="text-left px-4 py-3 font-medium">Form Fisik</th>}
                 {visibleCols.includes('status') && <th className="text-left px-4 py-3 font-medium">Status</th>}
+                {visibleCols.includes('note') && <th className="text-left px-4 py-3 font-medium">Note</th>}
                 <th className="px-4 py-3"></th>
               </tr>
             </thead>
@@ -373,6 +426,9 @@ export default function RecapTable({ recap }) {
                   )}
                   {visibleCols.includes('status') && (
                     <td className="px-4 py-3"><StatusBadge tercapai={r.tercapai} /></td>
+                  )}
+                  {visibleCols.includes('note') && (
+                    <td className="px-4 py-3"><NoteBadge note={r.note} sudahDikirim={r.sudahDikirim} /></td>
                   )}
                   <td className="px-4 py-3 text-ink-700/40"><ChevronRight size={16} /></td>
                 </tr>
@@ -470,6 +526,12 @@ export default function RecapTable({ recap }) {
                   <div className="text-ink-700/50 text-[11px]">Form Fisik</div>
                   <FormFisikDot formFisik={r.formFisik} />
                 </div>
+                {r.note && (
+                  <div className="col-span-2">
+                    <div className="text-ink-700/50 text-[11px]">Note</div>
+                    <NoteBadge note={r.note} sudahDikirim={r.sudahDikirim} />
+                  </div>
+                )}
               </div>
             </button>
           ))}
