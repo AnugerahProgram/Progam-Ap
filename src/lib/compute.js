@@ -60,45 +60,31 @@ function getRewardLabel(program, nominalRequired) {
 // a normalized `ctx` object (see computeRecap) and returns
 // { tercapai, kekurangan: string[] }
 const RULES = {
-  // SUPERFAN: ada 3 syarat yang semuanya harus terpenuhi.
+  // SUPERFAN: ada 2 syarat yang semuanya harus terpenuhi.
   //
-  //  1. VARIAN wajib: minimal 2 varian BERBEDA dari daftar item wajib
-  //     (saat ini ada 3: DABS-C 201, DABS-C 204, DT CRES 1/2"). Syarat ini
-  //     TIDAK berskala per paket -- berapa pun paket yang diajukan, tetap
-  //     minimal 2 varian berbeda, karena varian wajibnya cuma 3.
-  //     Beli banyak pcs tapi cuma 1 varian = BELUM memenuhi syarat.
-  //  2. QTY item wajib: basis per 1 paket = 2 pcs item wajib (boleh campur
-  //     antar varian wajib), dikali jumlah paket yang diajukan toko
-  //     (kolom PENGAJUAN PAKET di INPUT_REKAPAN_PROGRAM.xlsx).
-  //  3. Omset item program > TARGET NOMINAL (basis per 1 paket, dikali
-  //     jumlah paket). Contoh: toko ajukan 2 paket -> butuh 2 varian wajib,
-  //     4 pcs item wajib, & omset 2x TARGET NOMINAL (mis. 2jt -> 4jt).
+  //  1. QTY item wajib: basis per 1 paket = 2 pcs item wajib. TIDAK wajib
+  //     membeli 2 varian berbeda -- boleh beli 1 varian wajib saja (mis.
+  //     DABS-C 204) asalkan total qty-nya memenuhi syarat (boleh juga
+  //     campur antar varian wajib kalau mau), dikali jumlah paket yang
+  //     diajukan toko (kolom PENGAJUAN PAKET di INPUT_REKAPAN_PROGRAM.xlsx).
+  //  2. Omset item program > TARGET NOMINAL (basis per 1 paket, dikali
+  //     jumlah paket). Contoh: toko ajukan 2 paket -> butuh 4 pcs item
+  //     wajib (boleh 1 varian saja) & omset 2x TARGET NOMINAL (mis. 2jt -> 4jt).
   SUPERFAN: (ctx) => {
     const kekurangan = []
     const paket = ctx.pengajuanPaket && ctx.pengajuanPaket > 0 ? ctx.pengajuanPaket : 1
 
-    // --- Syarat 1: jumlah varian wajib yang berbeda ---
-    // Kalau master barang kebetulan cuma punya < 2 varian wajib, syaratnya
-    // turun mengikuti jumlah varian yang memang tersedia.
-    const varianNeeded = Math.min(2, ctx.wajibItemNames.length || 2)
-    const varianHave = ctx.wajibBoughtNames.length
-
-    // --- Syarat 2: total QTY item wajib, berskala per paket ---
+    // --- Syarat 1: total QTY item wajib, berskala per paket ---
+    // Boleh dari 1 varian wajib saja, tidak harus 2 varian berbeda.
     const wajibPerPaket = 2
     const wajibNeeded = wajibPerPaket * paket
     const wajibHave = ctx.wajibQtyBought
 
     const nominalRequired = ctx.nominalRequired != null ? ctx.nominalRequired * paket : null
 
-    if (varianHave < varianNeeded) {
-      const belumDibeli = ctx.wajibItemNames.filter((n) => !ctx.wajibBoughtNames.includes(n))
-      kekurangan.push(
-        `Varian wajib baru ${varianHave}/${varianNeeded} varian (syarat min. ${varianNeeded} varian berbeda dari ${ctx.wajibItemNames.length} varian wajib, tidak bisa diganti dengan menambah qty di varian yang sama). Belum dibeli: ${belumDibeli.join(', ') || '-'}`
-      )
-    }
     if (wajibHave < wajibNeeded) {
       kekurangan.push(
-        `Qty item wajib baru ${wajibHave}/${wajibNeeded} pcs (syarat ${wajibPerPaket} pcs × ${paket} paket yang diajukan). Item wajib: ${ctx.wajibItemNames.join(', ') || '-'}`
+        `Qty item wajib baru ${wajibHave}/${wajibNeeded} pcs (syarat ${wajibPerPaket} pcs × ${paket} paket yang diajukan, boleh dari 1 varian saja). Item wajib: ${ctx.wajibItemNames.join(', ') || '-'}`
       )
     }
     if (nominalRequired != null && ctx.omset <= nominalRequired) {
@@ -108,14 +94,11 @@ const RULES = {
     }
     return {
       tercapai:
-        varianHave >= varianNeeded &&
         wajibHave >= wajibNeeded &&
         (nominalRequired == null || ctx.omset > nominalRequired),
       kekurangan,
       wajibNeeded,
       wajibHave,
-      wajibVarianNeeded: varianNeeded,
-      wajibVarianHave: varianHave,
       nominalRequiredEffective: nominalRequired,
     }
   },
