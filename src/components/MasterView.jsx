@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react'
 import { useData } from '../context/DataContext'
 import { formatRupiah, formatDateRange } from '../lib/format'
+import { PROGRAM_TERMS } from '../lib/compute'
 
 export default function MasterView() {
   const { masterBarang, nominalWajib, periodeProgram } = useData()
@@ -34,6 +35,8 @@ export default function MasterView() {
         const nominal = nominalMap.get(key)
         const periode = periodeMap.get(key)
         const wajibItems = p.items.filter((i) => i.wajib)
+        const terms = PROGRAM_TERMS[p.program]
+        const showIsi = p.program === 'SUPERFAN' || !!terms
         return (
           <div key={key} className="bg-white border border-sand-200 rounded-2xl p-5">
             <div className="flex items-start justify-between mb-1">
@@ -49,6 +52,13 @@ export default function MasterView() {
               <div className="text-[13px] text-ink-700/70 mb-3">
                 Syarat omset: <b className="text-ink-900">{formatRupiah(nominal)}</b>
                 {p.program === 'SUPERFAN' && <span className="text-ink-700/50"> per 1 paket (dikali jumlah paket yang diajukan toko)</span>}
+              </div>
+            )}
+            {terms && (
+              <div className="mb-3 rounded-lg bg-brass-400/10 px-3 py-2 text-[12.5px]">
+                <div className="text-[11px] uppercase tracking-wide text-brass-600 font-semibold mb-0.5">Syarat dan ketentuan</div>
+                <div className="text-ink-900 font-medium">{terms.syarat}</div>
+                <div className="text-ink-700/60 mt-0.5">{terms.catatan}</div>
               </div>
             )}
             {wajibItems.length > 0 && (
@@ -72,6 +82,7 @@ export default function MasterView() {
               {p.items.map((i) => (
                 <span key={i.namaBarang} className="px-2 py-0.5 rounded-md bg-sand-100 text-ink-700 text-[12px]">
                   {i.namaBarang}
+                  {showIsi && Number(i.isiPerKotak) > 0 ? <span className="text-ink-700/50"> · isi {i.isiPerKotak}/kotak</span> : null}
                 </span>
               ))}
             </div>

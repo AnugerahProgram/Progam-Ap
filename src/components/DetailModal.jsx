@@ -195,6 +195,14 @@ export default function DetailModal({ row, onClose }) {
         <div className="px-6 py-4 border-b border-sand-200">
           <div className="flex items-center justify-between mb-2">
             <div className="font-semibold text-ink-900 text-[14px]">Cek varian item</div>
+            {row.varianKotakNeeded != null && (
+              <div className="text-[12.5px] text-ink-700/60">
+                Syarat min. 1 kotak per varian:{' '}
+                <b className={row.varianKotakHave >= row.varianKotakNeeded ? 'text-pine-600' : 'text-clay-600'}>
+                  {row.varianKotakHave}/{row.varianKotakNeeded} varian
+                </b>
+              </div>
+            )}
             {row.itemWajibTotal.length > 0 && (
               <div className="text-[12.5px] text-ink-700/60">
                 Item wajib:{' '}
@@ -220,10 +228,10 @@ export default function DetailModal({ row, onClose }) {
                 className="flex items-center gap-2 text-[13px] px-2.5 rounded-lg bg-white border border-sand-200"
                 style={{ height: '34px' }}
               >
-                <CheckCircle2 size={15} className="text-pine-500 shrink-0" />
+                <CheckCircle2 size={15} className={`shrink-0 ${row.varianKotakNeeded != null && it.kotak < 1 ? 'text-ink-700/25' : 'text-pine-500'}`} />
                 <span className="truncate">{it.namaBarang}</span>
                 {it.wajib && <span className="ml-auto text-[11px] text-brass-600 font-semibold shrink-0">WAJIB</span>}
-                <span className="text-ink-700/50 text-[12px] shrink-0">×{it.qty}</span>
+                <span className="text-ink-700/50 text-[12px] shrink-0">×{it.qty}{it.isiPerKotak && (row.varianKotakNeeded != null || row.wajibUnit === 'kotak') ? ` pcs · ${it.kotak} kotak` : ''}</span>
               </div>
             ))}
           </div>

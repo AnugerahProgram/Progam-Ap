@@ -67,6 +67,44 @@ export function pcsToKotak(qtyPcs, isiPerKotak) {
   return Math.floor(q / isi + 1e-9)
 }
 
+// Syarat & ketentuan program yang dihitung per KOTAK (selain SUPERFAN, yang
+// punya aturan sendiri). Dipakai di tab "Data Master Program" dan di pesan
+// kekurangan. Isi per kotak tiap item diambil dari MASTER_BARANG.xlsx.
+export const MIN_KOTAK_VARIAN = 2
+export const PROGRAM_TERMS = {
+  KUNINGAN: {
+    syarat: 'Minimal pembelian 2 kotak dengan varian yang berbeda',
+    catatan: 'Tiap varian minimal 1 kotak. Dihitung per kotak, bukan pcs (isi per kotak mengikuti MASTER_BARANG.xlsx).',
+  },
+  PVCBV: {
+    syarat: 'Minimal pembelian 2 kotak dengan varian yang berbeda',
+    catatan: 'Tiap varian minimal 1 kotak. Dihitung per kotak, bukan pcs (isi per kotak mengikuti MASTER_BARANG.xlsx).',
+  },
+}
+
+// Aturan KUNINGAN & PVCBV: minimal pembelian 2 kotak dengan varian yang
+// berbeda = ada minimal 2 varian item program yang masing-masing sudah
+// terbeli >= 1 kotak (akumulasi qty pcs dalam periode program / isi per
+// kotak, dibulatkan ke kotak utuh per varian). Pecahan kotak tidak dihitung
+// (mis. BALL VALVE 3/4" isi 10, terjual 6 pcs -> 0 kotak).
+function ruleMinKotakVarian(ctx) {
+  const need = MIN_KOTAK_VARIAN
+  const list = ctx.itemKotak || []
+  const have = list.filter((i) => i.kotak >= 1).length
+  const totalKotak = list.reduce((sum, i) => sum + i.kotak, 0)
+  const kekurangan = []
+  if (have < need) {
+    kekurangan.push(
+      `Minimal pembelian ${need} kotak dengan varian berbeda: baru ${have}/${need} varian yang sudah min. 1 kotak. Perlu ${need - have} varian lagi (min. 1 kotak per varian).`
+    )
+    const partial = list.filter((i) => i.kotak < 1 && i.qty > 0 && i.isi)
+    if (partial.length) {
+      kekurangan.push(`Belum genap 1 kotak: ${partial.map((i) => `${i.nama} ${i.qty}/${i.isi} pcs`).join(', ')}`)
+    }
+  }
+  return { tercapai: have >= need, kekurangan, varianKotakHave: have, varianKotakNeeded: need, totalKotak }
+}
+
 // How each program decides "tercapai" (qualified). Every rule receives
 // a normalized `ctx` object (see computeRecap) and returns
 // { tercapai, kekurangan: string[] }
@@ -139,23 +177,11 @@ const RULES = {
     return { tercapai: missing.length === 0, kekurangan }
   },
 
-  KUNINGAN: (ctx) => {
-    const need = 2
-    const have = ctx.boughtItemNames.length
-    const kekurangan = have < need
-      ? [`Varian item baru ${have}/${need}. Perlu beli minimal 1 varian berbeda lagi.`]
-      : []
-    return { tercapai: have >= need, kekurangan }
-  },
+  // Minimal pembelian 2 kotak dengan varian berbeda (lihat PROGRAM_TERMS).
+  KUNINGAN: ruleMinKotakVarian,
 
-  PVCBV: (ctx) => {
-    const need = 2
-    const have = ctx.boughtItemNames.length
-    const kekurangan = have < need
-      ? [`Varian item baru ${have}/${need}. Perlu beli minimal 1 varian berbeda lagi.`]
-      : []
-    return { tercapai: have >= need, kekurangan }
-  },
+  // Minimal pembelian 2 kotak dengan varian berbeda (lihat PROGRAM_TERMS).
+  PVCBV: ruleMinKotakVarian,
 
   // DISPLAY HOKI: reward Rp 200.000 kalau omset barang program >= Rp 1.665.000
   // (akumulasi periode program, dari toko yang sudah konfirmasi ikut program
@@ -351,6 +377,12 @@ export function computeRecap(sales, masterBarang, rekapanProgram, opts = {}) {
       0
     )
     const wajibItemLabels = wajibItemNames.map((n) => (isiMap.get(n) ? `${n} (isi ${isiMap.get(n)} pcs/kotak)` : n))
+    // Kotak per varian yang sudah dibeli (dipakai KUNINGAN & PVCBV).
+    const itemKotak = boughtItemNames.map((n) => {
+      const it = g.items.get(n)
+      const isi = isiMap.get(n) || null
+      return { nama: it.namaBarang, qty: it.qty, isi, kotak: pcsToKotak(it.qty, isi) }
+    })
     const nominalRequired = g.nominalRequired ?? null
 
     const ctx = {
@@ -362,6 +394,7 @@ export function computeRecap(sales, masterBarang, rekapanProgram, opts = {}) {
       wajibQtyBought,
       wajibKotakBought,
       wajibItemLabels,
+      itemKotak,
       nominalRequired,
       pengajuanPaket: g.pengajuanPaket,
     }
@@ -403,6 +436,10 @@ export function computeRecap(sales, masterBarang, rekapanProgram, opts = {}) {
       // wajibPcsHave: total pcs item wajib yang terjual (info tambahan).
       wajibUnit: result.wajibUnit || 'pcs',
       wajibPcsHave: result.wajibPcsHave !== undefined ? result.wajibPcsHave : null,
+      // KUNINGAN & PVCBV: jumlah varian yang sudah min. 1 kotak / yang dibutuhkan.
+      varianKotakHave: result.varianKotakHave !== undefined ? result.varianKotakHave : null,
+      varianKotakNeeded: result.varianKotakNeeded !== undefined ? result.varianKotakNeeded : null,
+      totalKotak: result.totalKotak !== undefined ? result.totalKotak : null,
       // wajibVarianHave/Needed: khusus program yang juga mensyaratkan jumlah
       // VARIAN wajib berbeda (SUPERFAN). Null untuk program lain, supaya UI
       // bisa memilih menampilkannya atau tidak.
@@ -412,7 +449,9 @@ export function computeRecap(sales, masterBarang, rekapanProgram, opts = {}) {
       kekurangan: result.kekurangan,
       reward: getRewardLabel(g.program, nominalRequired),
       bulanList: sortBulan(Array.from(g.bulanSet)),
-      items: Array.from(g.items.values()).sort((a, b) => (b.wajib === a.wajib ? 0 : b.wajib ? 1 : -1)),
+      items: Array.from(g.items.entries())
+        .map(([n, it]) => ({ ...it, isiPerKotak: isiMap.get(n) || null, kotak: pcsToKotak(it.qty, isiMap.get(n)) }))
+        .sort((a, b) => (b.wajib === a.wajib ? 0 : b.wajib ? 1 : -1)),
       transactions: g.transactions.sort((a, b) => (a.tglFaktur < b.tglFaktur ? -1 : 1)),
     })
   }

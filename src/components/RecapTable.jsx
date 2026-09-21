@@ -404,6 +404,11 @@ export default function RecapTable({ recap }) {
                   {visibleCols.includes('realisasi') && (
                     <td className="px-4 py-3 whitespace-nowrap">
                       {r.varianCount}/{r.totalVarianProgram} varian
+                      {r.varianKotakNeeded != null && (
+                        <div className={`text-[11.5px] ${r.varianKotakHave >= r.varianKotakNeeded ? 'text-pine-600' : 'text-clay-600'}`}>
+                          min. 1 kotak: {r.varianKotakHave}/{r.varianKotakNeeded} varian
+                        </div>
+                      )}
                       {r.itemWajibTotal.length > 0 && (
                         <>
                           {r.wajibVarianNeeded != null && (
@@ -514,6 +519,11 @@ export default function RecapTable({ recap }) {
                   <div className="text-ink-700/50 text-[11px]">Varian</div>
                   <div className="font-semibold text-ink-900">
                     {r.varianCount}/{r.totalVarianProgram}
+                    {r.varianKotakNeeded != null && (
+                      <span className={`ml-1 font-normal ${r.varianKotakHave >= r.varianKotakNeeded ? 'text-pine-600' : 'text-clay-600'}`}>
+                        (min. 1 kotak {r.varianKotakHave}/{r.varianKotakNeeded} varian)
+                      </span>
+                    )}
                     {r.itemWajibTotal.length > 0 && (
                       <span className={`ml-1 font-normal ${r.wajibHave >= r.wajibNeeded && (r.wajibVarianNeeded == null || r.wajibVarianHave >= r.wajibVarianNeeded) ? 'text-pine-600' : 'text-clay-600'}`}>
                         (wajib{r.wajibVarianNeeded != null ? ` ${r.wajibVarianHave}/${r.wajibVarianNeeded} varian,` : ''} {r.wajibHave}/{r.wajibNeeded} {r.wajibUnit}{r.wajibPcsHave != null && r.wajibUnit === 'kotak' ? `, ${r.wajibPcsHave} pcs` : ''})
