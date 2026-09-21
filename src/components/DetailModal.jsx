@@ -206,7 +206,10 @@ export default function DetailModal({ row, onClose }) {
                     {' · '}
                   </>
                 )}
-                <b className={row.wajibHave >= row.wajibNeeded ? 'text-pine-600' : 'text-clay-600'}>{row.wajibHave}/{row.wajibNeeded} pcs</b>
+                <b className={row.wajibHave >= row.wajibNeeded ? 'text-pine-600' : 'text-clay-600'}>{row.wajibHave}/{row.wajibNeeded} {row.wajibUnit}</b>
+                {row.wajibPcsHave != null && row.wajibUnit === 'kotak' && (
+                  <span className="text-ink-700/50"> ({row.wajibPcsHave} pcs)</span>
+                )}
               </div>
             )}
           </div>

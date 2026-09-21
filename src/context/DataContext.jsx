@@ -41,11 +41,6 @@ export function DataProvider({ children }) {
   // (server-side, dari tabel sync_meta) -- beda dari cachedAt yang cuma
   // "kapan browser ini terakhir fetch". null di mode lokal (tidak relevan).
   const [lastSyncedAt, setLastSyncedAt] = useState(null)
-  // default false: setiap baris di INPUT_REKAPAN_PROGRAM sudah membawa
-  // AWAL PROGRAM / AKHIR PROGRAM sendiri, jadi periode itu dipakai secara
-  // default supaya rekap selalu sesuai dengan yang tertulis di Excel.
-  const [ignorePeriod, setIgnorePeriod] = useState(false)
-
   // force=true -> lewati cache, selalu fetch fresh dari Supabase (dipakai
   // tombol "Refresh Data" di Topbar, misalnya tepat setelah menjalankan
   // npm run import:supabase supaya tidak perlu nunggu TTL habis).
@@ -102,8 +97,8 @@ export function DataProvider({ children }) {
   }
 
   const recap = useMemo(
-    () => computeRecap(raw.sales, raw.masterBarang, raw.rekapanProgram, { ignorePeriod }),
-    [raw, ignorePeriod]
+    () => computeRecap(raw.sales, raw.masterBarang, raw.rekapanProgram),
+    [raw]
   )
 
   // Rekap "Pengajuan Paket": semua baris INPUT_REKAPAN_PROGRAM ditampilkan
@@ -118,7 +113,6 @@ export function DataProvider({ children }) {
     ...raw, meta, status, errorMsg,
     reload: () => load({ force: true }),
     cacheStatus, cachedAt, lastSyncedAt,
-    ignorePeriod, setIgnorePeriod,
     recap,
     kekuranganPaket,
   }

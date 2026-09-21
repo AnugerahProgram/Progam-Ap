@@ -56,35 +56,50 @@ function getRewardLabel(program, nominalRequired) {
   return REWARD_LABEL[program] || '-'
 }
 
+// Konversi qty penjualan (F. QTY, satuan PCS) -> jumlah KOTAK utuh, memakai
+// kolom "ISI PER KOTAK" di MASTER_BARANG.xlsx. Contoh: DABS-C 204 isi 4 pcs
+// per kotak -> 8 pcs = 2 kotak. Kalau isi per kotak kosong/0, dianggap 1
+// (pcs = kotak) supaya tidak error.
+export function pcsToKotak(qtyPcs, isiPerKotak) {
+  const q = Number(qtyPcs) || 0
+  const isi = Number(isiPerKotak)
+  if (!isi || isi <= 0) return q
+  return Math.floor(q / isi + 1e-9)
+}
+
 // How each program decides "tercapai" (qualified). Every rule receives
 // a normalized `ctx` object (see computeRecap) and returns
 // { tercapai, kekurangan: string[] }
 const RULES = {
   // SUPERFAN: ada 2 syarat yang semuanya harus terpenuhi.
   //
-  //  1. QTY item wajib: basis per 1 paket = 2 pcs item wajib. TIDAK wajib
-  //     membeli 2 varian berbeda -- boleh beli 1 varian wajib saja (mis.
-  //     DABS-C 204) asalkan total qty-nya memenuhi syarat (boleh juga
-  //     campur antar varian wajib kalau mau), dikali jumlah paket yang
-  //     diajukan toko (kolom PENGAJUAN PAKET di INPUT_REKAPAN_PROGRAM.xlsx).
+  //  1. QTY item wajib dihitung dalam KOTAK (bukan pcs): basis per 1 paket =
+  //     2 KOTAK item wajib. Isi per kotak diambil dari kolom ISI PER KOTAK di
+  //     MASTER_BARANG.xlsx (DABS-C 201 = 14, DABS-C 204 = 4, DT CRES 1/2" = 10).
+  //     TIDAK wajib membeli 2 varian berbeda -- boleh 1 varian wajib saja (mis.
+  //     DABS-C 204) asalkan total kotaknya memenuhi syarat (boleh juga campur
+  //     antar varian wajib), dikali jumlah paket yang diajukan toko (kolom
+  //     PENGAJUAN PAKET di INPUT_REKAPAN_PROGRAM.xlsx).
+  //     Contoh: DABS-C 204 (isi 4 pcs/kotak), 1 paket -> 2 kotak = 8 pcs.
   //  2. Omset item program > TARGET NOMINAL (basis per 1 paket, dikali
-  //     jumlah paket). Contoh: toko ajukan 2 paket -> butuh 4 pcs item
+  //     jumlah paket). Contoh: toko ajukan 2 paket -> butuh 4 kotak item
   //     wajib (boleh 1 varian saja) & omset 2x TARGET NOMINAL (mis. 2jt -> 4jt).
   SUPERFAN: (ctx) => {
     const kekurangan = []
     const paket = ctx.pengajuanPaket && ctx.pengajuanPaket > 0 ? ctx.pengajuanPaket : 1
 
-    // --- Syarat 1: total QTY item wajib, berskala per paket ---
+    // --- Syarat 1: total KOTAK item wajib, berskala per paket ---
     // Boleh dari 1 varian wajib saja, tidak harus 2 varian berbeda.
-    const wajibPerPaket = 2
+    // Hitungan dalam KOTAK (pcs terjual / isi per kotak), bukan pcs.
+    const wajibPerPaket = 2 // kotak per 1 paket
     const wajibNeeded = wajibPerPaket * paket
-    const wajibHave = ctx.wajibQtyBought
+    const wajibHave = ctx.wajibKotakBought
 
     const nominalRequired = ctx.nominalRequired != null ? ctx.nominalRequired * paket : null
 
     if (wajibHave < wajibNeeded) {
       kekurangan.push(
-        `Qty item wajib baru ${wajibHave}/${wajibNeeded} pcs (syarat ${wajibPerPaket} pcs × ${paket} paket yang diajukan, boleh dari 1 varian saja). Item wajib: ${ctx.wajibItemNames.join(', ') || '-'}`
+        `Item wajib baru ${wajibHave}/${wajibNeeded} kotak = ${ctx.wajibQtyBought} pcs terjual (syarat ${wajibPerPaket} kotak × ${paket} paket yang diajukan, dihitung per kotak bukan pcs, boleh dari 1 varian saja). Item wajib: ${(ctx.wajibItemLabels || ctx.wajibItemNames).join(', ') || '-'}`
       )
     }
     if (nominalRequired != null && ctx.omset <= nominalRequired) {
@@ -99,6 +114,8 @@ const RULES = {
       kekurangan,
       wajibNeeded,
       wajibHave,
+      wajibUnit: 'kotak',
+      wajibPcsHave: ctx.wajibQtyBought,
       nominalRequiredEffective: nominalRequired,
     }
   },
@@ -217,7 +234,11 @@ export function buildProgramMeta(masterBarang) {
         items: [], // {namaBarang, wajib}
       })
     }
-    programs.get(key).items.push({ namaBarang: normName(row.namaBarang), wajib: !!row.wajib })
+    programs.get(key).items.push({
+      namaBarang: normName(row.namaBarang),
+      wajib: !!row.wajib,
+      isiPerKotak: Number(row.isiPerKotak) || null,
+    })
   }
 
   // item -> list of programs it belongs to, keyed by supp
@@ -322,6 +343,14 @@ export function computeRecap(sales, masterBarang, rekapanProgram, opts = {}) {
     // yang sudah dibeli -- dipakai program yang syaratnya berskala per
     // paket (SUPERFAN).
     const wajibQtyBought = wajibBoughtNames.reduce((sum, n) => sum + (g.items.get(n)?.qty || 0), 0)
+    // Versi KOTAK: qty pcs tiap item wajib dibagi ISI PER KOTAK (MASTER_BARANG),
+    // dibulatkan ke kotak utuh per item, lalu dijumlah.
+    const isiMap = new Map((programMeta?.items || []).map((i) => [i.namaBarang, i.isiPerKotak]))
+    const wajibKotakBought = wajibBoughtNames.reduce(
+      (sum, n) => sum + pcsToKotak(g.items.get(n)?.qty || 0, isiMap.get(n)),
+      0
+    )
+    const wajibItemLabels = wajibItemNames.map((n) => (isiMap.get(n) ? `${n} (isi ${isiMap.get(n)} pcs/kotak)` : n))
     const nominalRequired = g.nominalRequired ?? null
 
     const ctx = {
@@ -331,6 +360,8 @@ export function computeRecap(sales, masterBarang, rekapanProgram, opts = {}) {
       boughtItemNames,
       wajibBoughtNames,
       wajibQtyBought,
+      wajibKotakBought,
+      wajibItemLabels,
       nominalRequired,
       pengajuanPaket: g.pengajuanPaket,
     }
@@ -368,6 +399,10 @@ export function computeRecap(sales, masterBarang, rekapanProgram, opts = {}) {
       // fallback ke jumlah varian wajib yang dibeli/tersedia (perilaku lama).
       wajibHave: result.wajibHave !== undefined ? result.wajibHave : wajibBoughtNames.length,
       wajibNeeded: result.wajibNeeded !== undefined ? result.wajibNeeded : wajibItemNames.length,
+      // wajibUnit: satuan wajibHave/wajibNeeded ('kotak' untuk SUPERFAN).
+      // wajibPcsHave: total pcs item wajib yang terjual (info tambahan).
+      wajibUnit: result.wajibUnit || 'pcs',
+      wajibPcsHave: result.wajibPcsHave !== undefined ? result.wajibPcsHave : null,
       // wajibVarianHave/Needed: khusus program yang juga mensyaratkan jumlah
       // VARIAN wajib berbeda (SUPERFAN). Null untuk program lain, supaya UI
       // bisa memilih menampilkannya atau tidak.

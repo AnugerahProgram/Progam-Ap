@@ -412,7 +412,10 @@ export default function RecapTable({ recap }) {
                             </div>
                           )}
                           <div className={`text-[11.5px] ${r.wajibHave >= r.wajibNeeded ? 'text-pine-600' : 'text-clay-600'}`}>
-                            wajib {r.wajibHave}/{r.wajibNeeded} pcs
+                            wajib {r.wajibHave}/{r.wajibNeeded} {r.wajibUnit}
+                            {r.wajibPcsHave != null && r.wajibUnit === 'kotak' && (
+                              <span className="text-ink-700/50"> ({r.wajibPcsHave} pcs)</span>
+                            )}
                           </div>
                         </>
                       )}
@@ -513,7 +516,7 @@ export default function RecapTable({ recap }) {
                     {r.varianCount}/{r.totalVarianProgram}
                     {r.itemWajibTotal.length > 0 && (
                       <span className={`ml-1 font-normal ${r.wajibHave >= r.wajibNeeded && (r.wajibVarianNeeded == null || r.wajibVarianHave >= r.wajibVarianNeeded) ? 'text-pine-600' : 'text-clay-600'}`}>
-                        (wajib{r.wajibVarianNeeded != null ? ` ${r.wajibVarianHave}/${r.wajibVarianNeeded} varian,` : ''} {r.wajibHave}/{r.wajibNeeded} pcs)
+                        (wajib{r.wajibVarianNeeded != null ? ` ${r.wajibVarianHave}/${r.wajibVarianNeeded} varian,` : ''} {r.wajibHave}/{r.wajibNeeded} {r.wajibUnit}{r.wajibPcsHave != null && r.wajibUnit === 'kotak' ? `, ${r.wajibPcsHave} pcs` : ''})
                       </span>
                     )}
                   </div>
