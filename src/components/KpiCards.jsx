@@ -13,7 +13,7 @@ function Card({ icon: Icon, label, value, sub, accent }) {
       </div>
       <div className="min-w-0">
         <div className="text-[13px] text-ink-700/70">{label}</div>
-        <div className="text-2xl font-bold text-ink-900 mt-0.5 truncate">{value}</div>
+        <div className="text-2xl font-bold text-ink-900 mt-0.5 break-words">{value}</div>
         {sub && <div className="text-[12.5px] text-ink-700/60 mt-0.5">{sub}</div>}
       </div>
     </div>
@@ -27,13 +27,15 @@ export default function KpiCards({ recap }) {
     const belum = recap.filter((r) => !r.tercapai)
     const totalOmset = recap.reduce((s, r) => s + r.omset, 0)
     // Pengajuan Paket cuma bermakna sebagai UNIT untuk program barang fisik.
-    // Untuk program reward uang (BELANJA CERIA, DISPLAY HOKI) angkanya
-    // sebenarnya nominal target, jadi dijumlah terpisah supaya tidak
-    // tercampur (lihat juga src/lib/pengajuanPaket.js).
+    // Untuk program reward uang (BELANJA CERIA, DISPLAY HOKI) angka
+    // pengajuanPaket sebenarnya nominal target (bukan jumlah paket), jadi
+    // untuk dua program itu dihitung COUNT (jumlah entri pengajuan), lalu
+    // digabung dengan unit paket fisik dari program lain.
     const paketFisik = recap.filter((r) => !r.isCashReward)
     const rewardUang = recap.filter((r) => r.isCashReward)
-    const totalPaket = paketFisik.reduce((s, r) => s + (r.pengajuanPaket || 0), 0)
-    const totalNominalReward = rewardUang.reduce((s, r) => s + (r.pengajuanPaket || 0), 0)
+    const unitPaketFisik = paketFisik.reduce((s, r) => s + (r.pengajuanPaket || 0), 0)
+    const countRewardUang = rewardUang.length
+    const totalPaket = unitPaketFisik + countRewardUang
     return {
       totalCustomer: customers.size,
       totalEntri: recap.length,
@@ -41,8 +43,8 @@ export default function KpiCards({ recap }) {
       belum: belum.length,
       totalOmset,
       totalPaket,
-      totalNominalReward,
-      rewardCount: rewardUang.length,
+      unitPaketFisik,
+      countRewardUang,
     }
   }, [recap])
 
@@ -56,7 +58,7 @@ export default function KpiCards({ recap }) {
         icon={PackageCheck}
         label="Total Pengajuan Paket"
         value={formatNumber(stats.totalPaket)}
-        sub={stats.rewardCount > 0 ? `+ ${formatRupiah(stats.totalNominalReward)} nominal reward uang` : 'Unit paket fisik yang diajukan'}
+        sub={stats.countRewardUang > 0 ? `${formatNumber(stats.unitPaketFisik)} unit fisik + ${stats.countRewardUang} entri reward uang` : 'Unit paket fisik yang diajukan'}
         accent="#6B4EA6"
       />
     </div>
