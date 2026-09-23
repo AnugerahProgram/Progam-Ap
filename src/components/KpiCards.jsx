@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react'
 import { Users, CheckCircle2, CircleDashed, Wallet, PackageCheck } from 'lucide-react'
 import { formatRupiah, formatNumber } from '../lib/format'
+import { CASH_REWARD_PROGRAMS } from '../lib/compute'
 
 function Card({ icon: Icon, label, value, sub, accent }) {
   return (
@@ -29,10 +30,12 @@ export default function KpiCards({ recap }) {
     // Pengajuan Paket cuma bermakna sebagai UNIT untuk program barang fisik.
     // Untuk program reward uang (BELANJA CERIA, DISPLAY HOKI) angka
     // pengajuanPaket sebenarnya nominal target (bukan jumlah paket), jadi
-    // untuk dua program itu dihitung COUNT (jumlah entri pengajuan), lalu
-    // digabung dengan unit paket fisik dari program lain.
-    const paketFisik = recap.filter((r) => !r.isCashReward)
-    const rewardUang = recap.filter((r) => r.isCashReward)
+    // untuk dua program itu dihitung COUNTROWS (jumlah entri), BUKAN dijumlah
+    // nominalnya. NB: baris "recap" di sini tidak punya field isCashReward
+    // (itu cuma ada di data kekuranganPaket) -- makanya dicek langsung dari
+    // r.program terhadap CASH_REWARD_PROGRAMS.
+    const paketFisik = recap.filter((r) => !CASH_REWARD_PROGRAMS.includes(r.program))
+    const rewardUang = recap.filter((r) => CASH_REWARD_PROGRAMS.includes(r.program))
     const unitPaketFisik = paketFisik.reduce((s, r) => s + (r.pengajuanPaket || 0), 0)
     const countRewardUang = rewardUang.length
     const totalPaket = unitPaketFisik + countRewardUang
